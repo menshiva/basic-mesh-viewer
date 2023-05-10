@@ -13,18 +13,15 @@ constexpr static inline ImVec4      BACKGROUND_COLOR = ImVec4(0.36f, 0.6f, 0.65f
 static void OnPresenterCreate(const char *glslVersion, const Presenter &presenter) {
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
-    auto &io = ImGui::GetIO();
-    io.ConfigFlags |= ImGuiConfigFlags_NavNoCaptureKeyboard;
 
     ImGui::StyleColorsDark();
-    //ImGui::StyleColorsLight();
 
     ImGui_ImplGlfw_InitForOpenGL(presenter.getWindow(), true);
     ImGui_ImplOpenGL3_Init(glslVersion);
 
 #ifdef __EMSCRIPTEN__
     // For an Emscripten build we are disabling file-system access, so let's not attempt to do a fopen() of the imgui.ini file.
-    io.IniFilename = nullptr;
+    ImGui::GetIO().IniFilename = nullptr;
 #endif
 }
 
@@ -46,6 +43,7 @@ static void OnPresenterTick(const Presenter &presenter) {
     {
         static float f = 0.0f;
         static int counter = 0;
+        static auto editColor = BACKGROUND_COLOR;
 
         ImGui::Begin("Hello, world!"); // Create a window called "Hello, world!" and append into it.
 
@@ -54,7 +52,7 @@ static void OnPresenterTick(const Presenter &presenter) {
         ImGui::Checkbox("Another Window", &showAnotherWindow);
 
         ImGui::SliderFloat("float", &f, 0.0f, 1.0f); // Edit 1 float using a slider from 0.0f to 1.0f
-        // ImGui::ColorEdit3("clear color", (float*) &BACKGROUND_COLOR); // Edit 3 floats representing a color
+        ImGui::ColorEdit3("clear color", (float*) &editColor); // Edit 3 floats representing a color
 
         if (ImGui::Button("Button")) // Buttons return true when clicked (most widgets return true when edited/activated)
             counter++;

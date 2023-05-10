@@ -62,9 +62,6 @@ void Presenter::initGlfwCreateWindowAndLoop(
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
     glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-#endif
-
-#ifndef __EMSCRIPTEN__
     if (fullscreen)
         glfwWindowHint(GLFW_MAXIMIZED, GLFW_TRUE);
 #endif
@@ -87,22 +84,21 @@ void Presenter::initGlfwCreateWindowAndLoop(
     if (m_pOnCreate)
         m_pOnCreate(glslVersion, *this);
 
-#ifdef __EMSCRIPTEN__
-    emscripten_set_window_title(title);
-
-    // always fullscreen with emscripten
-    EmscriptenFullscreenStrategy strategy;
-	strategy.scaleMode = EMSCRIPTEN_FULLSCREEN_CANVAS_SCALE_STDDEF;
-	strategy.filteringMode = EMSCRIPTEN_FULLSCREEN_FILTERING_DEFAULT;
-	strategy.canvasResizedCallback = emscriptenWindowResizedCallback;
-    strategy.canvasResizedCallbackUserData = this;
-	emscripten_enter_soft_fullscreen("canvas", &strategy);
-#endif
-
 #ifndef __EMSCRIPTEN__
     while (!glfwWindowShouldClose(m_pWindow))
         tick(this);
 #else
+    emscripten_set_window_title(title);
+
+    if (fullscreen) {
+        EmscriptenFullscreenStrategy strategy;
+	    strategy.scaleMode = EMSCRIPTEN_FULLSCREEN_CANVAS_SCALE_STDDEF;
+	    strategy.filteringMode = EMSCRIPTEN_FULLSCREEN_FILTERING_DEFAULT;
+	    strategy.canvasResizedCallback = emscriptenWindowResizedCallback;
+        strategy.canvasResizedCallbackUserData = this;
+	    emscripten_enter_soft_fullscreen("canvas", &strategy);
+    }
+
     emscripten_set_main_loop_arg(Presenter::tick, this, 0, true);
 #endif
 }
