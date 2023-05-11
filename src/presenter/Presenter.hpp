@@ -8,20 +8,19 @@ public:
     Presenter();
     ~Presenter();
 
-    GLFWwindow *getWindow() const { return m_pWindow; }
+    GLFWwindow *GetWindow() const { return m_pWindow; }
 
-    Presenter &withOnCreateCallback(std::function<void(const char*, const Presenter&)> &&Callback);
-    Presenter &withOnTickCallback(std::function<void(const Presenter&)> &&Callback);
-    Presenter &withOnDestroyCallback(std::function<void(const Presenter&)> &&Callback);
+    Presenter &WithOnInitCallback(std::function<void(const char*, GLFWwindow*)> &&Callback);
+    Presenter &WithOnPreRenderCallback(std::function<void()> &&Callback);
+    Presenter &WithOnRenderCallback(std::function<void()> &&Callback);
+    Presenter &WithOnDestroyCallback(std::function<void()> &&Callback);
 
-    void initGlfwCreateWindowAndLoop(int defaultWidth, int defaultHeight, const char *title, bool fullscreen);
-    void clear(const GLclampf backgroundColor[4]) const;
+    void InitGlfwCreateWindowAndLoop();
 private:
-    static void tick(void *presenterPtr);
+    static void Tick(void *PresenterPtr);
 
     GLFWwindow *m_pWindow;
 
-    std::function<void(const char*, const Presenter&)> m_pOnCreate;
-    std::function<void(const Presenter&)> m_pOnTick;
-    std::function<void(const Presenter&)> m_pOnDestroy;
+    std::function<void(const char*, GLFWwindow*)> m_pOnInit;
+    std::function<void()> m_pOnPreRender, m_pOnRender, m_pOnDestroy;
 };
