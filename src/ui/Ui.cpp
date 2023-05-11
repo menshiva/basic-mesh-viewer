@@ -2,17 +2,29 @@
 #include <cstdio>
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
+#include "imgui_internal.h"
 
-void UI::Init(const char *GlslVersion, GLFWwindow *Window) {
+bool UI::Init(const char *GlslVersion, GLFWwindow *Window) {
     IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
+
+    const auto Ctx = ImGui::CreateContext();
+    if (!Ctx || !Ctx->Initialized)
+        return false;
+
     ImGui::StyleColorsDark();
-    ImGui_ImplGlfw_InitForOpenGL(Window, true);
-    ImGui_ImplOpenGL3_Init(GlslVersion);
+
+    if (!ImGui_ImplGlfw_InitForOpenGL(Window, true))
+        return false;
+
+    if (!ImGui_ImplOpenGL3_Init(GlslVersion))
+        return false;
+
 #ifdef __EMSCRIPTEN__
     // For an Emscripten build we are disabling file-system access, so let's not attempt to do a fopen() of the imgui.ini file.
     ImGui::GetIO().IniFilename = nullptr;
 #endif
+
+    return true;
 }
 
 void UI::PreRender(uint8_t &SelectedMeshIdx, ImVec4 &MeshColor) {

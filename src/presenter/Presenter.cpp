@@ -23,7 +23,7 @@ Presenter::~Presenter() {
     glfwTerminate();
 }
 
-Presenter &Presenter::WithOnInitCallback(std::function<void(const char*, GLFWwindow*)> &&Callback) {
+Presenter &Presenter::WithOnInitCallback(std::function<bool(const char*, GLFWwindow*)> &&Callback) {
     m_pOnInit = Callback;
     return *this;
 }
@@ -59,10 +59,10 @@ void Presenter::InitGlfwCreateWindowAndLoop() {
     glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_ES_API);
 #else
     const char *GlslVersion = "#version 130";
-    // glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    // glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
-    // glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    // glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
+    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
     if constexpr (Config::WIN_DEFAULT_MAXIMIZED)
         glfwWindowHint(GLFW_MAXIMIZED, GLFW_TRUE);
 #endif
@@ -79,7 +79,7 @@ void Presenter::InitGlfwCreateWindowAndLoop() {
 #ifndef __EMSCRIPTEN__
     glfwSetWindowSizeLimits(
         m_pWindow,
-        Config::WIN_DEFAULT_WIDTH, Config::WIN_DEFAULT_HEIGHT,
+        Config::WIN_MIN_WIDTH, Config::WIN_MIN_HEIGHT,
         GLFW_DONT_CARE, GLFW_DONT_CARE
     );
 
@@ -92,7 +92,8 @@ void Presenter::InitGlfwCreateWindowAndLoop() {
     glfwMakeContextCurrent(m_pWindow);
     glfwSwapInterval(1); // Enable vsync
 
-    m_pOnInit(GlslVersion, m_pWindow);
+    if (!m_pOnInit(GlslVersion, m_pWindow))
+        return;
 
 #ifndef __EMSCRIPTEN__
     while (!glfwWindowShouldClose(m_pWindow))

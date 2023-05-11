@@ -10,7 +10,7 @@ public:
 
     GLFWwindow *GetWindow() const { return m_pWindow; }
 
-    Presenter &WithOnInitCallback(std::function<void(const char*, GLFWwindow*)> &&Callback);
+    Presenter &WithOnInitCallback(std::function<bool(const char*, GLFWwindow*)> &&Callback);
     Presenter &WithOnPreRenderCallback(std::function<void()> &&Callback);
     Presenter &WithOnRenderCallback(std::function<void()> &&Callback);
     Presenter &WithOnDestroyCallback(std::function<void()> &&Callback);
@@ -21,6 +21,6 @@ private:
 
     GLFWwindow *m_pWindow;
 
-    std::function<void(const char*, GLFWwindow*)> m_pOnInit;
+    std::function<bool(const char*, GLFWwindow*)> m_pOnInit;
     std::function<void()> m_pOnPreRender, m_pOnRender, m_pOnDestroy;
 };

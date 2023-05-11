@@ -1,9 +1,16 @@
-#include "config.hpp"
+#include <GL/glew.h>
 #include "presenter/Presenter.hpp"
 #include "ui/Ui.hpp"
+#include "config.hpp"
 
-static void OnInit(const char *glslVersion, GLFWwindow *window) {
-    UI::Init(glslVersion, window);
+static bool OnInit(const char *glslVersion, GLFWwindow *window) {
+    if (glewInit() != GLEW_OK)
+        return false;
+
+    if (!UI::Init(glslVersion, window))
+        return false;
+
+    return true;
 }
 
 static void OnPreRender() {

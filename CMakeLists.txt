@@ -15,6 +15,10 @@ set(CMAKE_CXX_STANDARD_REQUIRED True)
 find_package(OpenGL REQUIRED)
 include_directories(${OPENGL_INCLUDE_DIRS})
 
+# glew
+set(glew-cmake_BUILD_SHARED OFF CACHE BOOL "" FORCE)
+add_subdirectory(include/glew)
+
 # glfw
 set(GLFW_BUILD_DOCS OFF CACHE BOOL "" FORCE)
 set(GLFW_BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
@@ -47,4 +51,4 @@ target_include_directories(IMGUI
 )
 target_link_libraries(IMGUI glfw)
 
-target_link_libraries(BasicMeshViewer ${OPENGL_LIBRARIES} glfw IMGUI)
+target_link_libraries(BasicMeshViewer PRIVATE ${OPENGL_LIBRARIES} libglew_static glfw IMGUI)
