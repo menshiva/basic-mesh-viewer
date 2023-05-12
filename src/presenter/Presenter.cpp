@@ -52,19 +52,20 @@ void Presenter::InitGlfwCreateWindowAndLoop() {
         return;
 
     // Decide GL+GLSL versions
-#ifdef __EMSCRIPTEN__
-    const char *GlslVersion = "#version 100";
+#ifndef __EMSCRIPTEN__
+    const char *GlslVersion = "#version 330 core";
+    // TODO
+    // glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    // glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
+    // glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    // glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+    if constexpr (Config::WIN_DEFAULT_MAXIMIZED)
+        glfwWindowHint(GLFW_MAXIMIZED, GLFW_TRUE);
+#else
+    const char *GlslVersion = "#version 300 es";
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
     glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_ES_API);
-#else
-    const char *GlslVersion = "#version 130";
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
-    glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-    if constexpr (Config::WIN_DEFAULT_MAXIMIZED)
-        glfwWindowHint(GLFW_MAXIMIZED, GLFW_TRUE);
 #endif
 
     // Create window with graphics context
