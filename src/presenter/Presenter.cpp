@@ -45,7 +45,7 @@ Presenter &Presenter::WithOnDestroyCallback(std::function<void()> &&Callback) {
 
 int Presenter::InitGlfwCreateWindowAndLoop() {
     glfwSetErrorCallback([] (const int error, const char *description) {
-        fprintf(stderr, "GLFW Error %d: %s\n", error, description);
+        fprintf(stderr, "GLFW Error %d: %s.\n", error, description);
     });
     if (!glfwInit())
         return 1;

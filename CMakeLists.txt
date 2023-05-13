@@ -52,3 +52,7 @@ target_include_directories(IMGUI
 target_link_libraries(IMGUI glfw)
 
 target_link_libraries(BasicMeshViewer PRIVATE ${OPENGL_LIBRARIES} libglew_static glfw IMGUI)
+
+# res
+file(GLOB_RECURSE RESOURCE_FILES res/*)
+file(COPY ${RESOURCE_FILES} DESTINATION ${CMAKE_CURRENT_BINARY_DIR}/res)

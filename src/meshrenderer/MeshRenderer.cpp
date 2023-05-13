@@ -1,48 +1,75 @@
 #include "MeshRenderer.hpp"
+#include <memory>
+#include <fstream>
+#include <sstream>
 
-static GLuint CompileAttachShader(const GLenum Type, const std::string_view Shader, const GLuint ProgramId) {
-    const GLuint ID = glCreateShader(Type);
-    const auto ShaderPathPtr = Shader.data();
-    glShaderSource(ID, 1, &ShaderPathPtr, nullptr);
-    glCompileShader(ID);
+static bool CompileShader(const GLenum Type, const std::string_view Path, GLuint &OutShaderID) {
+    const auto ShaderPathWithSuffix = std::unique_ptr<char[]>(new char[Path.size() + 5 + 1]);
+    sprintf(ShaderPathWithSuffix.get(), Type == GL_VERTEX_SHADER ? "%s.vert" : "%s.frag", Path.data());
 
-    int Result;
-    glGetShaderiv(ID, GL_COMPILE_STATUS, &Result);
+    std::ifstream FileStream(ShaderPathWithSuffix.get(), std::ios::in | std::ios::binary);
+    if (!FileStream.is_open()) {
+        fprintf(stderr, "Failed to open shader file %s.\n", ShaderPathWithSuffix.get());
+        return false;
+    }
+    std::stringstream FileBuff;
+    FileBuff << FileStream.rdbuf();
+    FileStream.close();
+
+    const auto &FileContent = FileBuff.str();
+
+#ifndef __EMSCRIPTEN__
+    const char *ShaderSrc[2] = {
+        GLSL_VERSION,
+        FileContent.data()
+    };
+#else
+    const char *ShaderSrc[3] = {
+        GLSL_VERSION,
+        "precision highp float;\n",
+        FileContent.data()
+    };
+#endif
+
+    OutShaderID = glCreateShader(Type);
+    glShaderSource(OutShaderID, sizeof(ShaderSrc) / sizeof(ShaderSrc[0]), ShaderSrc, nullptr);
+    glCompileShader(OutShaderID);
+
+    GLint Result;
+    glGetShaderiv(OutShaderID, GL_COMPILE_STATUS, &Result);
     if (!Result) {
-        int MsgLen;
-        glGetShaderiv(ID, GL_INFO_LOG_LENGTH, &MsgLen);
-        char *Msg = (char*) alloca(MsgLen * sizeof(char));
-        glGetShaderInfoLog(ID, MsgLen, &MsgLen, Msg);
-
-        const char *ShaderType;
-        if (Type == GL_VERTEX_SHADER)
-            ShaderType = "vertex";
-        else
-            ShaderType = "fragment";
-
-        glDeleteShader(ID);
-        printf("Failed to compile %s shader: %s\n", ShaderType, Msg);
-
-        exit(1);
+        GLint MsgLen;
+        glGetShaderiv(OutShaderID, GL_INFO_LOG_LENGTH, &MsgLen);
+        const auto Msg = std::unique_ptr<char[]>(new char[MsgLen]);
+        glGetShaderInfoLog(OutShaderID, MsgLen, &MsgLen, Msg.get());
+        glDeleteShader(OutShaderID);
+        printf("Failed to compile %s shader: %s\n", Type == GL_VERTEX_SHADER ? "vertex" : "fragment", Msg.get());
+        return false;
     }
 
-    glAttachShader(ProgramId, ID);
-    return ID;
+    return true;
 }
 
-static GLuint CreateShader(const std::string_view VertexShader, const std::string_view FragmentShader) {
-    const GLuint ProgramId = glCreateProgram();
+static bool CreateProgram(const std::string_view Path, GLuint &OutProgramID) {
+    OutProgramID = glCreateProgram();
 
-    const auto VSid = CompileAttachShader(GL_VERTEX_SHADER, VertexShader, ProgramId);
-    const auto FSid = CompileAttachShader(GL_FRAGMENT_SHADER, FragmentShader, ProgramId);
+    GLuint VertShaderID;
+    if (!CompileShader(GL_VERTEX_SHADER, Path, VertShaderID))
+        return false;
+    glAttachShader(OutProgramID, VertShaderID);
 
-    glLinkProgram(ProgramId);
-    glValidateProgram(ProgramId);
+    GLuint FragShaderID;
+    if (!CompileShader(GL_FRAGMENT_SHADER, Path, FragShaderID))
+        return false;
+    glAttachShader(OutProgramID, FragShaderID);
 
-    glDeleteShader(VSid);
-    glDeleteShader(FSid);
+    glLinkProgram(OutProgramID);
+    glValidateProgram(OutProgramID);
 
-    return ProgramId;
+    glDeleteShader(VertShaderID);
+    glDeleteShader(FragShaderID);
+
+    return true;
 }
 
 MeshRenderer::MeshRenderer() : m_pSelectedMeshIdx(0) {}
@@ -54,7 +81,12 @@ bool MeshRenderer::Init(HelperStructs::GLInfo &OutInfo) {
     if (!FillGLInfo(OutInfo))
         return false;
 
-    const float positions[6] = {
+    GLuint ProgramID;
+    if (!CreateProgram("res/Basic", ProgramID))
+        return false;
+    glUseProgram(ProgramID);
+
+    const float Positions[6] = {
         -0.5f, -0.5f,
         0.0f, 0.5f,
         0.5f, -0.5f
@@ -62,41 +94,11 @@ bool MeshRenderer::Init(HelperStructs::GLInfo &OutInfo) {
 
     glGenBuffers(1, &m_pBufferId);
     glBindBuffer(GL_ARRAY_BUFFER, m_pBufferId);
-    glBufferData(GL_ARRAY_BUFFER, 6 * sizeof(float), positions, GL_STATIC_DRAW);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(Positions), Positions, GL_STATIC_DRAW);
 
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), nullptr);
 
-#ifndef __EMSCRIPTEN__
-    const auto ShaderId = CreateShader(
-        GLSL_VERSION
-        "in vec4 position;\n"
-        "void main() {\n"
-        "   gl_Position = position;\n"
-        "}\n",
-        GLSL_VERSION
-        "out vec4 color;\n"
-        "void main() {\n"
-        "   color = vec4(1.0f, 1.0f, 1.0f, 1.0f);\n"
-        "}\n"
-    );
-#else
-    const auto ShaderId = CreateShader(
-        GLSL_VERSION
-        "in vec4 position;\n"
-        "void main() {\n"
-        "   gl_Position = position;\n"
-        "}\n",
-        GLSL_VERSION
-        "precision highp float;\n"
-        "out vec4 color;\n"
-        "void main() {\n"
-        "   color = vec4(1.0f, 1.0f, 1.0f, 1.0f);\n"
-        "}\n"
-    );
-#endif
-
-    glUseProgram(ShaderId);
     return true;
 }
 
