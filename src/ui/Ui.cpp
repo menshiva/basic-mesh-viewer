@@ -4,7 +4,9 @@
 #include "imgui_impl_opengl3.h"
 #include "imgui_internal.h"
 
-bool UI::Init(const char *GlslVersion, GLFWwindow *Window) {
+bool UI::Init(const HelperStructs::GLInfo &Info, GLFWwindow *Window) {
+    m_pInfo = Info;
+
     IMGUI_CHECKVERSION();
 
     const auto Ctx = ImGui::CreateContext();
@@ -16,7 +18,7 @@ bool UI::Init(const char *GlslVersion, GLFWwindow *Window) {
     if (!ImGui_ImplGlfw_InitForOpenGL(Window, true))
         return false;
 
-    if (!ImGui_ImplOpenGL3_Init(GlslVersion))
+    if (!ImGui_ImplOpenGL3_Init(GLSL_VERSION))
         return false;
 
 #ifdef __EMSCRIPTEN__
@@ -27,10 +29,10 @@ bool UI::Init(const char *GlslVersion, GLFWwindow *Window) {
     return true;
 }
 
-void UI::PreRender(uint8_t &SelectedMeshIdx, ImVec4 &MeshColor) {
-    // TODO: make responsive
+void UI::Update(uint8_t &SelectedMeshIdx, ImVec4 &MeshColor) const {
+    // TODO: make adaptive
 
-    auto &io = ImGui::GetIO();
+    auto &IO = ImGui::GetIO();
 
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
@@ -45,40 +47,16 @@ void UI::PreRender(uint8_t &SelectedMeshIdx, ImVec4 &MeshColor) {
         ImGuiCond_Always, ImVec2(1.0f, 0.0f)
     );
 
-    ImGui::Begin(
-        "##Main##", nullptr,
-        ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove
-    );
+    ImGui::Begin("##Main##", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
     const float AvailableWidth = ImGui::GetContentRegionAvail().x;
 
-    ImGui::SeparatorText("Mesh");
-    for (uint8_t i = 0; i < 5; ++i) {
-        char buf[32];
-        sprintf(buf, "Object %d", i);
-        if (ImGui::Selectable(buf, SelectedMeshIdx == i))
-            SelectedMeshIdx = i;
-    }
-
-    ImGui::SeparatorText("Color");
-    const float colorOffset = (AvailableWidth - ImGui::CalcItemWidth()) * 0.5f;
-    if (colorOffset > 0.0f)
-        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + colorOffset);
-    ImGui::ColorPicker3(
-        "##Mesh Color##", (float*) &MeshColor,
-        ImGuiColorEditFlags_PickerHueBar | ImGuiColorEditFlags_NoSidePreview | ImGuiColorEditFlags_NoAlpha
-    );
-
-    ImGui::SeparatorText("Metrics");
-    // TODO
-    // const float metricsOffset = (availableWidth - ImGui::CalcTextSize()) * 0.5f;
-    // if (metricsOffset > 0.0f)
-    //     ImGui::SetCursorPosX(ImGui::GetCursorPosX() + metricsOffset);
-    ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
+    MeshSection(SelectedMeshIdx);
+    ColorSection(AvailableWidth, MeshColor);
+    InfoAndMetricsSection(m_pInfo, IO.Framerate);
 
     ImGui::End();
 
     // TODO
-    // auto &io = ImGui::GetIO();
     /*static bool ShowDemoWindow = true;
     static bool ShowAnotherWindow = false;
 
@@ -122,7 +100,7 @@ void UI::PreRender(uint8_t &SelectedMeshIdx, ImVec4 &MeshColor) {
     ImGui::EndFrame();
 }
 
-void UI::Render() {
+void UI::Draw() {
     ImGui::Render();
     ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());
 }
@@ -131,4 +109,42 @@ void UI::Destroy() {
     ImGui_ImplOpenGL3_Shutdown();
     ImGui_ImplGlfw_Shutdown();
     ImGui::DestroyContext();
+}
+
+void UI::MeshSection(uint8_t &SelectedMeshIdx) {
+    ImGui::SeparatorText("Mesh");
+    for (uint8_t i = 0; i < 5; ++i) {
+        char buf[32];
+        sprintf(buf, "Object %d", i);
+        if (ImGui::Selectable(buf, SelectedMeshIdx == i))
+            SelectedMeshIdx = i;
+    }
+}
+
+void UI::ColorSection(const float AvailableParentWidth, ImVec4 &MeshColor) {
+    ImGui::SeparatorText("Color");
+    const float colorOffset = (AvailableParentWidth - ImGui::CalcItemWidth()) * 0.5f;
+    if (colorOffset > 0.0f)
+        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + colorOffset);
+    ImGui::ColorPicker3(
+        "##Mesh Color##", (float*) &MeshColor,
+        ImGuiColorEditFlags_PickerHueWheel | ImGuiColorEditFlags_NoSidePreview | ImGuiColorEditFlags_NoAlpha
+    );
+}
+
+void UI::InfoAndMetricsSection(const HelperStructs::GLInfo &Info, const float Framerate) {
+    ImGui::SeparatorText("Info and Metrics");
+
+    ImGui::Text("OpenGL implementation vendor: %s", Info.m_Vendor.data());
+    ImGui::Text("Renderer: %s", Info.m_Renderer.data());
+    ImGui::Text("OpenGL version supported: %s", Info.m_Version.data());
+    ImGui::Text("OpenGL shading language: %s", Info.m_ShadingLanguageVersion.data());
+
+    ImGui::Separator();
+
+    // TODO
+    // const float metricsOffset = (availableWidth - ImGui::CalcTextSize()) * 0.5f;
+    // if (metricsOffset > 0.0f)
+    //     ImGui::SetCursorPosX(ImGui::GetCursorPosX() + metricsOffset);
+    ImGui::Text("Performance: %.1f FPS", Framerate);
 }

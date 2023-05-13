@@ -23,18 +23,18 @@ Presenter::~Presenter() {
     glfwTerminate();
 }
 
-Presenter &Presenter::WithOnInitCallback(std::function<bool(const char*, GLFWwindow*)> &&Callback) {
+Presenter &Presenter::WithOnInitCallback(std::function<bool(GLFWwindow*)> &&Callback) {
     m_pOnInit = Callback;
     return *this;
 }
 
-Presenter &Presenter::WithOnPreRenderCallback(std::function<void()> &&Callback) {
-    m_pOnPreRender = Callback;
+Presenter &Presenter::WithOnUpdateCallback(std::function<void()> &&Callback) {
+    m_pOnUpdate = Callback;
     return *this;
 }
 
-Presenter &Presenter::WithOnRenderCallback(std::function<void()> &&Callback) {
-    m_pOnRender = Callback;
+Presenter &Presenter::WithOnDrawCallback(std::function<void()> &&Callback) {
+    m_pOnDraw = Callback;
     return *this;
 }
 
@@ -43,58 +43,22 @@ Presenter &Presenter::WithOnDestroyCallback(std::function<void()> &&Callback) {
     return *this;
 }
 
-void Presenter::InitGlfwCreateWindowAndLoop() {
-    // GLFW Init
+int Presenter::InitGlfwCreateWindowAndLoop() {
     glfwSetErrorCallback([] (const int error, const char *description) {
         fprintf(stderr, "GLFW Error %d: %s\n", error, description);
     });
     if (!glfwInit())
-        return;
+        return 1;
 
-    // Decide GL+GLSL versions
-#ifndef __EMSCRIPTEN__
-    const char *GlslVersion = "#version 330 core";
-    // TODO
-    // glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
-    // glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
-    // glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
-    // glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-    if constexpr (Config::WIN_DEFAULT_MAXIMIZED)
-        glfwWindowHint(GLFW_MAXIMIZED, GLFW_TRUE);
-#else
-    const char *GlslVersion = "#version 300 es";
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
-    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
-    glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_ES_API);
-#endif
-
-    // Create window with graphics context
-    m_pWindow = glfwCreateWindow(
-        Config::WIN_DEFAULT_WIDTH, Config::WIN_DEFAULT_HEIGHT,
-        Config::WIN_TITLE,
-        nullptr, nullptr
-    );
+    m_pWindow = InitWindow(this);
     if (!m_pWindow)
-        return;
-
-#ifndef __EMSCRIPTEN__
-    glfwSetWindowSizeLimits(
-        m_pWindow,
-        Config::WIN_MIN_WIDTH, Config::WIN_MIN_HEIGHT,
-        GLFW_DONT_CARE, GLFW_DONT_CARE
-    );
-
-    glfwSetWindowUserPointer(m_pWindow, this);
-    glfwSetFramebufferSizeCallback(m_pWindow, [] (GLFWwindow *window, int, int) {
-        Presenter::Tick((Presenter*) glfwGetWindowUserPointer(window));
-    });
-#endif
+        return 1;
 
     glfwMakeContextCurrent(m_pWindow);
     glfwSwapInterval(1); // Enable vsync
 
-    if (!m_pOnInit(GlslVersion, m_pWindow))
-        return;
+    if (!m_pOnInit(m_pWindow))
+        return 1;
 
 #ifndef __EMSCRIPTEN__
     while (!glfwWindowShouldClose(m_pWindow))
@@ -113,24 +77,62 @@ void Presenter::InitGlfwCreateWindowAndLoop() {
 
     emscripten_set_main_loop_arg(Presenter::Tick, this, 0, true);
 #endif
+
+    return 0;
+}
+
+GLFWwindow *Presenter::InitWindow(Presenter *UserPointer) {
+#ifndef __EMSCRIPTEN__
+    // TODO
+    // glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
+    // glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 2);
+    // glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+    // glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
+    if constexpr (Config::WIN_DEFAULT_MAXIMIZED)
+        glfwWindowHint(GLFW_MAXIMIZED, GLFW_TRUE);
+#else
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 2);
+    glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 0);
+    glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_ES_API);
+#endif
+
+    const auto Window = glfwCreateWindow(
+        Config::WIN_DEFAULT_WIDTH, Config::WIN_DEFAULT_HEIGHT,
+        Config::WIN_TITLE,
+        nullptr, nullptr
+    );
+    if (!Window)
+        return nullptr;
+
+#ifndef __EMSCRIPTEN__
+    glfwSetWindowSizeLimits(
+        Window,
+        Config::WIN_MIN_WIDTH, Config::WIN_MIN_HEIGHT,
+        GLFW_DONT_CARE, GLFW_DONT_CARE
+    );
+
+    glfwSetWindowUserPointer(Window, UserPointer);
+    glfwSetFramebufferSizeCallback(Window, [] (GLFWwindow *Window, int, int) {
+        Presenter::Tick((Presenter*) glfwGetWindowUserPointer(Window));
+    });
+#endif
+
+    return Window;
 }
 
 void Presenter::Tick(void *PresenterPtr) {
     const auto &P = *((Presenter*) PresenterPtr);
 
-    P.m_pOnPreRender();
+    P.m_pOnUpdate();
 
     int w, h;
     glfwGetFramebufferSize(P.m_pWindow, &w, &h);
     glViewport(0, 0, w, h);
 
-    glClearColor(
-        Config::BACKGROUND_COLOR[0], Config::BACKGROUND_COLOR[1],
-        Config::BACKGROUND_COLOR[2], Config::BACKGROUND_COLOR[3]
-    );
+    glClearColor(Config::BACKGROUND_COLOR[0], Config::BACKGROUND_COLOR[1], Config::BACKGROUND_COLOR[2], 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    P.m_pOnRender();
+    P.m_pOnDraw();
 
     glfwSwapBuffers(P.m_pWindow);
     glfwPollEvents();

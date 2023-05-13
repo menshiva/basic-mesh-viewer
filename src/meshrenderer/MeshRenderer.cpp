@@ -1,5 +1,4 @@
 #include "MeshRenderer.hpp"
-#include <string_view>
 
 static GLuint CompileAttachShader(const GLenum Type, const std::string_view Shader, const GLuint ProgramId) {
     const GLuint ID = glCreateShader(Type);
@@ -48,8 +47,11 @@ static GLuint CreateShader(const std::string_view VertexShader, const std::strin
 
 MeshRenderer::MeshRenderer() : m_pSelectedMeshIdx(0) {}
 
-bool MeshRenderer::Init() {
+bool MeshRenderer::Init(HelperStructs::GLInfo &OutInfo) {
     if (glewInit() != GLEW_OK)
+        return false;
+
+    if (!FillGLInfo(OutInfo))
         return false;
 
     const float positions[6] = {
@@ -67,12 +69,12 @@ bool MeshRenderer::Init() {
 
 #ifndef __EMSCRIPTEN__
     const auto ShaderId = CreateShader(
-        "#version 330 core\n"
+        GLSL_VERSION
         "in vec4 position;\n"
         "void main() {\n"
         "   gl_Position = position;\n"
         "}\n",
-        "#version 330 core\n"
+        GLSL_VERSION
         "out vec4 color;\n"
         "void main() {\n"
         "   color = vec4(1.0f, 1.0f, 1.0f, 1.0f);\n"
@@ -80,12 +82,12 @@ bool MeshRenderer::Init() {
     );
 #else
     const auto ShaderId = CreateShader(
-        "#version 300 es\n"
+        GLSL_VERSION
         "in vec4 position;\n"
         "void main() {\n"
         "   gl_Position = position;\n"
         "}\n",
-        "#version 300 es\n"
+        GLSL_VERSION
         "precision highp float;\n"
         "out vec4 color;\n"
         "void main() {\n"
@@ -98,7 +100,7 @@ bool MeshRenderer::Init() {
     return true;
 }
 
-void MeshRenderer::PreRender() {
+void MeshRenderer::Update() {
     static uint8_t PrevSelectedMeshIdx = m_pSelectedMeshIdx;
     if (PrevSelectedMeshIdx != m_pSelectedMeshIdx) {
         // selected mesh idx was changed
@@ -106,10 +108,31 @@ void MeshRenderer::PreRender() {
     }
 }
 
-void MeshRenderer::Render() {
+void MeshRenderer::Draw() {
     glDrawArrays(GL_TRIANGLES, 0, 3);
 }
 
 void MeshRenderer::Destroy() {
     // TODO: glDeleteProgram();
+}
+
+bool MeshRenderer::FillGLInfo(HelperStructs::GLInfo &OutInfo) {
+    const auto Vendor = (const char*) glGetString(GL_VENDOR);
+    if (!Vendor)
+        return false;
+
+    const auto Renderer = (const char*) glGetString(GL_RENDERER);
+    if (!Renderer)
+        return false;
+
+    const auto Version = (const char*) glGetString(GL_VERSION);
+    if (!Version)
+        return false;
+
+    const auto ShadingLanguageVersion = (const char*) glGetString(GL_SHADING_LANGUAGE_VERSION);
+    if (!ShadingLanguageVersion)
+        return false;
+
+    OutInfo = {Vendor, Renderer, Version, ShadingLanguageVersion};
+    return true;
 }

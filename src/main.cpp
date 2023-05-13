@@ -3,20 +3,21 @@
 #include "ui/Ui.hpp"
 #include "config.hpp"
 
-static bool OnInit(MeshRenderer &Renderer, const char *glslVersion, GLFWwindow *window) {
-    return Renderer.Init() && UI::Init(glslVersion, window);
+static bool OnInit(GLFWwindow *Window, MeshRenderer &Renderer, UI &Ui) {
+    HelperStructs::GLInfo Info;
+    return Renderer.Init(Info) && Ui.Init(Info, Window);
 }
 
-static void OnPreRender(MeshRenderer &Renderer) {
+static void OnUpdate(MeshRenderer &Renderer, UI &Ui) {
     static ImVec4 MeshColor = *((ImVec4*) Config::MESH_DEFAULT_COLOR);
 
-    UI::PreRender(Renderer.GetSelectedMeshIdxRef(), MeshColor);
-    Renderer.PreRender();
+    Ui.Update(Renderer.GetSelectedMeshIdxRef(), MeshColor);
+    Renderer.Update();
 }
 
-static void OnRender(MeshRenderer &Renderer) {
-    Renderer.Render();
-    UI::Render();
+static void OnDraw(MeshRenderer &Renderer) {
+    Renderer.Draw();
+    UI::Draw();
 }
 
 static void OnDestroy(MeshRenderer &Renderer) {
@@ -26,19 +27,19 @@ static void OnDestroy(MeshRenderer &Renderer) {
 
 int main() {
     MeshRenderer Renderer;
-    Presenter()
-        .WithOnInitCallback([&Renderer] (const char *glslVersion, GLFWwindow *window) {
-            return OnInit(Renderer, glslVersion, window);
+    UI Ui;
+    return Presenter()
+        .WithOnInitCallback([&Renderer, &Ui] (GLFWwindow *Window) {
+            return OnInit(Window, Renderer, Ui);
         })
-        .WithOnPreRenderCallback([&Renderer] {
-            OnPreRender(Renderer);
+        .WithOnUpdateCallback([&Renderer, &Ui] {
+            OnUpdate(Renderer, Ui);
         })
-        .WithOnRenderCallback([&Renderer] {
-            OnRender(Renderer);
+        .WithOnDrawCallback([&Renderer] {
+            OnDraw(Renderer);
         })
         .WithOnDestroyCallback([&Renderer] {
             OnDestroy(Renderer);
         })
         .InitGlfwCreateWindowAndLoop();
-    return 0;
 }
