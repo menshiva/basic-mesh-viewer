@@ -12,7 +12,6 @@ EXE = $(WEB_DIR)/index.html
 SOURCES = $(shell find $(SRC_DIR)/ -type f -name '*.cpp')
 SOURCES += $(IMGUI_DIR)/imgui.cpp $(IMGUI_DIR)/imgui_demo.cpp $(IMGUI_DIR)/imgui_draw.cpp $(IMGUI_DIR)/imgui_tables.cpp $(IMGUI_DIR)/imgui_widgets.cpp
 SOURCES += $(IMGUI_DIR)/backends/imgui_impl_glfw.cpp $(IMGUI_DIR)/backends/imgui_impl_opengl3.cpp
-RES = $(shell find $(RES_DIR)/ -type f)
 OBJS = $(patsubst %, $(OBJ_DIR)/%.o, $(basename $(SOURCES)))
 
 CPPFLAGS = -std=c++20
@@ -31,7 +30,7 @@ LDFLAGS += -s USE_GLFW=3 -s WASM=1 -s ALLOW_MEMORY_GROWTH=1 -s NO_EXIT_RUNTIME=0
 #EMS += -s BINARYEN_TRAP_MODE=clamp
 #EMS += -s SAFE_HEAP=1    ## Adds overhead
 
-LDFLAGS += --no-heap-copy $(patsubst %,--preload-file %, $(RES))
+LDFLAGS += --no-heap-copy --embed-file $(RES_DIR)
 
 ##---------------------------------------------------------------------
 ## FINAL BUILD FLAGS

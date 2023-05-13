@@ -21,13 +21,13 @@ static bool CompileShader(const GLenum Type, const std::string_view Path, GLuint
 #ifndef __EMSCRIPTEN__
     const char *ShaderSrc[2] = {
         GLSL_VERSION,
-        FileContent.data()
+        FileContent.c_str()
     };
 #else
     const char *ShaderSrc[3] = {
         GLSL_VERSION,
         "precision highp float;\n",
-        FileContent.data()
+        FileContent.c_str()
     };
 #endif
 
