@@ -42,7 +42,7 @@ bool UI::Init(const HelperStructs::GLInfo &glInfo, GLFWwindow *window) {
     return true;
 }
 
-void UI::Update(uint8_t &selectedMeshIdx, ImVec4 &meshColor) const {
+void UI::Update(uint8_t &selectedMeshIdx, float *meshColor) const {
     auto &io = ImGui::GetIO();
 
     ImGui_ImplOpenGL3_NewFrame();
@@ -123,26 +123,40 @@ void UI::Destroy() {
     ImGui::DestroyContext();
 }
 
-void UI::MeshSection(uint8_t &selectedMeshIdx) {
+UI &UI::WithOnSelectedMeshIdxChangedCallback(std::function<void()> &&callback) {
+    m_pOnSelectedMeshIdxChanged = callback;
+    return *this;
+}
+
+UI &UI::WithOnColorChangedCallback(std::function<void()> &&callback) {
+    m_pOnColorChanged = callback;
+    return *this;
+}
+
+void UI::MeshSection(uint8_t &selectedMeshIdx) const {
     ImGui::SeparatorText("Mesh");
     for (uint8_t i = 0; i < 5; ++i) {
         char buf[32];
         sprintf(buf, "Object %d", i);
-        if (ImGui::Selectable(buf, selectedMeshIdx == i))
+        if (ImGui::Selectable(buf, selectedMeshIdx == i)) {
             selectedMeshIdx = i;
+            m_pOnSelectedMeshIdxChanged();
+        }
     }
 }
 
-void UI::ColorSection(const float availableParentWidth, ImVec4 &meshColor) {
+void UI::ColorSection(const float availableParentWidth, float *meshColor) const {
     ImGui::SeparatorText("Color");
     const float colorOffset = (availableParentWidth - ImGui::CalcItemWidth()) * 0.5f;
     if (colorOffset > 0.0f)
         ImGui::SetCursorPosX(ImGui::GetCursorPosX() + colorOffset);
     // TODO: color options
-    ImGui::ColorPicker3(
-        "##Mesh Color##", (float*) &meshColor,
+    if (ImGui::ColorPicker3(
+        "##Mesh Color##", meshColor,
         ImGuiColorEditFlags_PickerHueWheel | ImGuiColorEditFlags_NoSidePreview | ImGuiColorEditFlags_NoAlpha
-    );
+    )) {
+        m_pOnColorChanged();
+    }
 }
 
 void UI::InfoAndMetricsSection(const HelperStructs::GLInfo &glInfo, const float framerate) {

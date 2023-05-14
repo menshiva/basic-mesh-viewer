@@ -2,6 +2,7 @@
 #include <memory>
 #include <fstream>
 #include <sstream>
+#include "../config.hpp"
 
 static bool CompileShader(const GLenum shaderType, const std::string_view path, GLuint &shaderIdOut) {
     const auto shaderPathWithSuffix = std::unique_ptr<char[]>(new char[path.size() + 5 + 1]);
@@ -52,6 +53,8 @@ static bool CompileShader(const GLenum shaderType, const std::string_view path, 
 
 static bool CreateProgram(const std::string_view path, GLuint &programIdOut) {
     programIdOut = glCreateProgram();
+    if (!programIdOut)
+        return false;
 
     GLuint vertShaderId;
     if (!CompileShader(GL_VERTEX_SHADER, path, vertShaderId))
@@ -72,7 +75,8 @@ static bool CreateProgram(const std::string_view path, GLuint &programIdOut) {
     return true;
 }
 
-MeshRenderer::MeshRenderer() : m_pSelectedMeshIdx(0) {}
+MeshRenderer::MeshRenderer() : m_pSelectedMeshIdx(0), m_pMeshColor(Config::MESH_DEFAULT_COLOR),
+                               m_pProgramId(0), m_ColorUniformLocation(), m_pVboIbo({0}) {}
 
 bool MeshRenderer::Init(HelperStructs::GLInfo &infoOut) {
     if (glewInit() != GLEW_OK)
@@ -81,10 +85,12 @@ bool MeshRenderer::Init(HelperStructs::GLInfo &infoOut) {
     if (!FillGLInfo(infoOut))
         return false;
 
-    GLuint programId;
-    if (!CreateProgram("res/Basic", programId))
+    if (!CreateProgram("res/Basic", m_pProgramId))
         return false;
-    glUseProgram(programId);
+    glUseProgram(m_pProgramId);
+
+    m_ColorUniformLocation = glGetUniformLocation(m_pProgramId, "u_Color");
+    OnMeshColorChanged();
 
     const float positions[] = {
         -0.5f, -0.5f,
@@ -98,27 +104,23 @@ bool MeshRenderer::Init(HelperStructs::GLInfo &infoOut) {
         2, 3, 0
     };
 
-    GLuint vboIbo[2];
-    glGenBuffers(2, vboIbo);
+    glGenBuffers((GLsizei) m_pVboIbo.size(), m_pVboIbo.data());
 
-    glBindBuffer(GL_ARRAY_BUFFER, vboIbo[0]);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(positions), positions, GL_STATIC_DRAW);
+    glBindBuffer(GL_ARRAY_BUFFER, m_pVboIbo[0]);
 
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), nullptr);
 
-    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vboIbo[1]);
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_pVboIbo[1]);
+
+    glBufferData(GL_ARRAY_BUFFER, sizeof(positions), positions, GL_STATIC_DRAW);
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
     return true;
 }
 
 void MeshRenderer::Update() {
-    static uint8_t prevSelectedMeshIdx = m_pSelectedMeshIdx;
-    if (prevSelectedMeshIdx != m_pSelectedMeshIdx) {
-        // selected mesh idx was changed
-        prevSelectedMeshIdx = m_pSelectedMeshIdx;
-    }
+    // TODO
 }
 
 void MeshRenderer::Draw() {
@@ -126,8 +128,18 @@ void MeshRenderer::Draw() {
 }
 
 void MeshRenderer::Destroy() {
-    // TODO: glDeleteBuffers
-    // TODO: glDeleteProgram();
+    if (m_pProgramId) {
+        glDeleteBuffers((GLsizei) m_pVboIbo.size(), m_pVboIbo.data());
+        glDeleteProgram(m_pProgramId);
+    }
+}
+
+void MeshRenderer::OnSelectedMeshIdxChanged() const {
+    // TODO
+}
+
+void MeshRenderer::OnMeshColorChanged() const {
+    glUniform3f(m_ColorUniformLocation, m_pMeshColor[0], m_pMeshColor[1], m_pMeshColor[2]);
 }
 
 bool MeshRenderer::FillGLInfo(HelperStructs::GLInfo &infoOut) {
