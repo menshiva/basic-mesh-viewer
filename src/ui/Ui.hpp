@@ -7,14 +7,14 @@
 
 class UI {
 public:
-    bool Init(const HelperStructs::GLInfo &Info, struct GLFWwindow *Window);
-    void Update(uint8_t &SelectedMeshIdx, ImVec4 &MeshColor) const;
+    bool Init(const HelperStructs::GLInfo &glInfo, struct GLFWwindow *window);
+    void Update(uint8_t &selectedMeshIdx, ImVec4 &meshColor) const;
     static void Draw();
     static void Destroy();
 private:
-    static void MeshSection(uint8_t &SelectedMeshIdx);
-    static void ColorSection(float AvailableParentWidth, ImVec4 &MeshColor);
-    static void InfoAndMetricsSection(const HelperStructs::GLInfo &Info, float Framerate);
+    static void MeshSection(uint8_t &selectedMeshIdx);
+    static void ColorSection(float availableParentWidth, ImVec4 &meshColor);
+    static void InfoAndMetricsSection(const HelperStructs::GLInfo &glInfo, float framerate);
 
     HelperStructs::GLInfo m_pInfo;
 };

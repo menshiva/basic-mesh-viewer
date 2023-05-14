@@ -3,138 +3,150 @@
 #include <fstream>
 #include <sstream>
 
-static bool CompileShader(const GLenum Type, const std::string_view Path, GLuint &OutShaderID) {
-    const auto ShaderPathWithSuffix = std::unique_ptr<char[]>(new char[Path.size() + 5 + 1]);
-    sprintf(ShaderPathWithSuffix.get(), Type == GL_VERTEX_SHADER ? "%s.vert" : "%s.frag", Path.data());
+static bool CompileShader(const GLenum shaderType, const std::string_view path, GLuint &shaderIdOut) {
+    const auto shaderPathWithSuffix = std::unique_ptr<char[]>(new char[path.size() + 5 + 1]);
+    sprintf(shaderPathWithSuffix.get(), shaderType == GL_VERTEX_SHADER ? "%s.vert" : "%s.frag", path.data());
 
-    std::ifstream FileStream(ShaderPathWithSuffix.get(), std::ios::in | std::ios::binary);
-    if (!FileStream.is_open()) {
-        fprintf(stderr, "Failed to open shader file %s.\n", ShaderPathWithSuffix.get());
+    std::ifstream fileStream(shaderPathWithSuffix.get(), std::ios::in | std::ios::binary);
+    if (!fileStream.is_open()) {
+        fprintf(stderr, "Failed to open shader file %s.\n", shaderPathWithSuffix.get());
         return false;
     }
-    std::stringstream FileBuff;
-    FileBuff << FileStream.rdbuf();
-    FileStream.close();
+    std::stringstream fileBuff;
+    fileBuff << fileStream.rdbuf();
+    fileStream.close();
 
-    const auto &FileContent = FileBuff.str();
+    const auto &fileContent = fileBuff.str();
 
 #ifndef __EMSCRIPTEN__
     const char *ShaderSrc[2] = {
         GLSL_VERSION,
-        FileContent.c_str()
+        fileContent.c_str()
     };
 #else
     const char *ShaderSrc[3] = {
         GLSL_VERSION,
         "precision highp float;\n",
-        FileContent.c_str()
+        fileContent.c_str()
     };
 #endif
 
-    OutShaderID = glCreateShader(Type);
-    glShaderSource(OutShaderID, sizeof(ShaderSrc) / sizeof(ShaderSrc[0]), ShaderSrc, nullptr);
-    glCompileShader(OutShaderID);
+    shaderIdOut = glCreateShader(shaderType);
+    glShaderSource(shaderIdOut, sizeof(ShaderSrc) / sizeof(ShaderSrc[0]), ShaderSrc, nullptr);
+    glCompileShader(shaderIdOut);
 
-    GLint Result;
-    glGetShaderiv(OutShaderID, GL_COMPILE_STATUS, &Result);
-    if (!Result) {
-        GLint MsgLen;
-        glGetShaderiv(OutShaderID, GL_INFO_LOG_LENGTH, &MsgLen);
-        const auto Msg = std::unique_ptr<char[]>(new char[MsgLen]);
-        glGetShaderInfoLog(OutShaderID, MsgLen, &MsgLen, Msg.get());
-        glDeleteShader(OutShaderID);
-        printf("Failed to compile %s shader: %s\n", Type == GL_VERTEX_SHADER ? "vertex" : "fragment", Msg.get());
+    GLint result;
+    glGetShaderiv(shaderIdOut, GL_COMPILE_STATUS, &result);
+    if (!result) {
+        GLint msgLen;
+        glGetShaderiv(shaderIdOut, GL_INFO_LOG_LENGTH, &msgLen);
+        const auto Msg = std::unique_ptr<char[]>(new char[msgLen]);
+        glGetShaderInfoLog(shaderIdOut, msgLen, &msgLen, Msg.get());
+        glDeleteShader(shaderIdOut);
+        printf("Failed to compile %s shader: %s\n", shaderType == GL_VERTEX_SHADER ? "vertex" : "fragment", Msg.get());
         return false;
     }
 
     return true;
 }
 
-static bool CreateProgram(const std::string_view Path, GLuint &OutProgramID) {
-    OutProgramID = glCreateProgram();
+static bool CreateProgram(const std::string_view path, GLuint &programIdOut) {
+    programIdOut = glCreateProgram();
 
-    GLuint VertShaderID;
-    if (!CompileShader(GL_VERTEX_SHADER, Path, VertShaderID))
+    GLuint vertShaderId;
+    if (!CompileShader(GL_VERTEX_SHADER, path, vertShaderId))
         return false;
-    glAttachShader(OutProgramID, VertShaderID);
+    glAttachShader(programIdOut, vertShaderId);
 
-    GLuint FragShaderID;
-    if (!CompileShader(GL_FRAGMENT_SHADER, Path, FragShaderID))
+    GLuint fragShaderID;
+    if (!CompileShader(GL_FRAGMENT_SHADER, path, fragShaderID))
         return false;
-    glAttachShader(OutProgramID, FragShaderID);
+    glAttachShader(programIdOut, fragShaderID);
 
-    glLinkProgram(OutProgramID);
-    glValidateProgram(OutProgramID);
+    glLinkProgram(programIdOut);
+    glValidateProgram(programIdOut);
 
-    glDeleteShader(VertShaderID);
-    glDeleteShader(FragShaderID);
+    glDeleteShader(vertShaderId);
+    glDeleteShader(fragShaderID);
 
     return true;
 }
 
 MeshRenderer::MeshRenderer() : m_pSelectedMeshIdx(0) {}
 
-bool MeshRenderer::Init(HelperStructs::GLInfo &OutInfo) {
+bool MeshRenderer::Init(HelperStructs::GLInfo &infoOut) {
     if (glewInit() != GLEW_OK)
         return false;
 
-    if (!FillGLInfo(OutInfo))
+    if (!FillGLInfo(infoOut))
         return false;
 
-    GLuint ProgramID;
-    if (!CreateProgram("res/Basic", ProgramID))
+    GLuint programId;
+    if (!CreateProgram("res/Basic", programId))
         return false;
-    glUseProgram(ProgramID);
+    glUseProgram(programId);
 
-    const float Positions[6] = {
+    const float positions[] = {
         -0.5f, -0.5f,
-        0.0f, 0.5f,
-        0.5f, -0.5f
+        0.5f, -0.5f,
+        0.5f, 0.5f,
+        -0.5f, 0.5f,
     };
 
-    glGenBuffers(1, &m_pBufferId);
-    glBindBuffer(GL_ARRAY_BUFFER, m_pBufferId);
-    glBufferData(GL_ARRAY_BUFFER, sizeof(Positions), Positions, GL_STATIC_DRAW);
+    const uint8_t indices[] = {
+        0, 1, 2,
+        2, 3, 0
+    };
+
+    GLuint vboIbo[2];
+    glGenBuffers(2, vboIbo);
+
+    glBindBuffer(GL_ARRAY_BUFFER, vboIbo[0]);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(positions), positions, GL_STATIC_DRAW);
 
     glEnableVertexAttribArray(0);
     glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), nullptr);
+
+    glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, vboIbo[1]);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
 
     return true;
 }
 
 void MeshRenderer::Update() {
-    static uint8_t PrevSelectedMeshIdx = m_pSelectedMeshIdx;
-    if (PrevSelectedMeshIdx != m_pSelectedMeshIdx) {
+    static uint8_t prevSelectedMeshIdx = m_pSelectedMeshIdx;
+    if (prevSelectedMeshIdx != m_pSelectedMeshIdx) {
         // selected mesh idx was changed
-        PrevSelectedMeshIdx = m_pSelectedMeshIdx;
+        prevSelectedMeshIdx = m_pSelectedMeshIdx;
     }
 }
 
 void MeshRenderer::Draw() {
-    glDrawArrays(GL_TRIANGLES, 0, 3);
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_BYTE, nullptr);
 }
 
 void MeshRenderer::Destroy() {
+    // TODO: glDeleteBuffers
     // TODO: glDeleteProgram();
 }
 
-bool MeshRenderer::FillGLInfo(HelperStructs::GLInfo &OutInfo) {
-    const auto Vendor = (const char*) glGetString(GL_VENDOR);
-    if (!Vendor)
+bool MeshRenderer::FillGLInfo(HelperStructs::GLInfo &infoOut) {
+    const auto vendor = (const char*) glGetString(GL_VENDOR);
+    if (!vendor)
         return false;
 
-    const auto Renderer = (const char*) glGetString(GL_RENDERER);
-    if (!Renderer)
+    const auto renderer = (const char*) glGetString(GL_RENDERER);
+    if (!renderer)
         return false;
 
-    const auto Version = (const char*) glGetString(GL_VERSION);
-    if (!Version)
+    const auto version = (const char*) glGetString(GL_VERSION);
+    if (!version)
         return false;
 
-    const auto ShadingLanguageVersion = (const char*) glGetString(GL_SHADING_LANGUAGE_VERSION);
-    if (!ShadingLanguageVersion)
+    const auto shadingLanguageVersion = (const char*) glGetString(GL_SHADING_LANGUAGE_VERSION);
+    if (!shadingLanguageVersion)
         return false;
 
-    OutInfo = {Vendor, Renderer, Version, ShadingLanguageVersion};
+    infoOut = {vendor, renderer, version, shadingLanguageVersion};
     return true;
 }

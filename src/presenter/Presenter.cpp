@@ -6,11 +6,10 @@
 #include <emscripten.h>
 #include <emscripten/html5.h>
 
-EM_BOOL EmscriptenWindowResizedCallback(const int, const void*, void *PresenterPtr) {
-    double Width, Height;
-    emscripten_get_element_css_size("canvas", &Width, &Height);
-    const int w = (int) Width, h = (int) Height;
-    glfwSetWindowSize(((Presenter*) PresenterPtr)->GetWindow(), w, h);
+EM_BOOL EmscriptenWindowResizedCallback(const int, const void*, void *presenterPtr) {
+    double width, height;
+    emscripten_get_element_css_size("canvas", &width, &height);
+    glfwSetWindowSize(((Presenter*) presenterPtr)->GetWindow(), (int) width, (int) height);
     return true;
 }
 #endif
@@ -23,23 +22,23 @@ Presenter::~Presenter() {
     glfwTerminate();
 }
 
-Presenter &Presenter::WithOnInitCallback(std::function<bool(GLFWwindow*)> &&Callback) {
-    m_pOnInit = Callback;
+Presenter &Presenter::WithOnInitCallback(std::function<bool(GLFWwindow*)> &&callback) {
+    m_pOnInit = callback;
     return *this;
 }
 
-Presenter &Presenter::WithOnUpdateCallback(std::function<void()> &&Callback) {
-    m_pOnUpdate = Callback;
+Presenter &Presenter::WithOnUpdateCallback(std::function<void()> &&callback) {
+    m_pOnUpdate = callback;
     return *this;
 }
 
-Presenter &Presenter::WithOnDrawCallback(std::function<void()> &&Callback) {
-    m_pOnDraw = Callback;
+Presenter &Presenter::WithOnDrawCallback(std::function<void()> &&callback) {
+    m_pOnDraw = callback;
     return *this;
 }
 
-Presenter &Presenter::WithOnDestroyCallback(std::function<void()> &&Callback) {
-    m_pOnDestroy = Callback;
+Presenter &Presenter::WithOnDestroyCallback(std::function<void()> &&callback) {
+    m_pOnDestroy = callback;
     return *this;
 }
 
@@ -67,12 +66,12 @@ int Presenter::InitGlfwCreateWindowAndLoop() {
     emscripten_set_window_title(Config::WIN_TITLE);
 
     if constexpr (Config::WIN_DEFAULT_MAXIMIZED) {
-        EmscriptenFullscreenStrategy Strategy;
-	    Strategy.scaleMode = EMSCRIPTEN_FULLSCREEN_CANVAS_SCALE_STDDEF;
-	    Strategy.filteringMode = EMSCRIPTEN_FULLSCREEN_FILTERING_DEFAULT;
-	    Strategy.canvasResizedCallback = EmscriptenWindowResizedCallback;
-        Strategy.canvasResizedCallbackUserData = this;
-	    emscripten_enter_soft_fullscreen("canvas", &Strategy);
+        EmscriptenFullscreenStrategy strategy;
+	    strategy.scaleMode = EMSCRIPTEN_FULLSCREEN_CANVAS_SCALE_STDDEF;
+	    strategy.filteringMode = EMSCRIPTEN_FULLSCREEN_FILTERING_DEFAULT;
+	    strategy.canvasResizedCallback = EmscriptenWindowResizedCallback;
+        strategy.canvasResizedCallbackUserData = this;
+	    emscripten_enter_soft_fullscreen("canvas", &strategy);
     }
 
     emscripten_set_main_loop_arg(Presenter::Tick, this, 0, true);
@@ -81,7 +80,7 @@ int Presenter::InitGlfwCreateWindowAndLoop() {
     return 0;
 }
 
-GLFWwindow *Presenter::InitWindow(Presenter *UserPointer) {
+GLFWwindow *Presenter::InitWindow(Presenter *userPointer) {
 #ifndef __EMSCRIPTEN__
     // TODO
     // glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -96,44 +95,44 @@ GLFWwindow *Presenter::InitWindow(Presenter *UserPointer) {
     glfwWindowHint(GLFW_CLIENT_API, GLFW_OPENGL_ES_API);
 #endif
 
-    const auto Window = glfwCreateWindow(
+    const auto window = glfwCreateWindow(
         Config::WIN_DEFAULT_WIDTH, Config::WIN_DEFAULT_HEIGHT,
         Config::WIN_TITLE,
         nullptr, nullptr
     );
-    if (!Window)
+    if (!window)
         return nullptr;
 
 #ifndef __EMSCRIPTEN__
     glfwSetWindowSizeLimits(
-        Window,
+        window,
         Config::WIN_MIN_WIDTH, Config::WIN_MIN_HEIGHT,
         GLFW_DONT_CARE, GLFW_DONT_CARE
     );
 
-    glfwSetWindowUserPointer(Window, UserPointer);
-    glfwSetFramebufferSizeCallback(Window, [] (GLFWwindow *Window, int, int) {
-        Presenter::Tick((Presenter*) glfwGetWindowUserPointer(Window));
+    glfwSetWindowUserPointer(window, userPointer);
+    glfwSetFramebufferSizeCallback(window, [] (GLFWwindow *window, int, int) {
+        Presenter::Tick((Presenter*) glfwGetWindowUserPointer(window));
     });
 #endif
 
-    return Window;
+    return window;
 }
 
-void Presenter::Tick(void *PresenterPtr) {
-    const auto &P = *((Presenter*) PresenterPtr);
+void Presenter::Tick(void *presenterPtr) {
+    const auto &presenter = *((Presenter*) presenterPtr);
 
-    P.m_pOnUpdate();
+    glfwPollEvents();
+    presenter.m_pOnUpdate();
 
     int w, h;
-    glfwGetFramebufferSize(P.m_pWindow, &w, &h);
+    glfwGetFramebufferSize(presenter.m_pWindow, &w, &h);
     glViewport(0, 0, w, h);
 
     glClearColor(Config::BACKGROUND_COLOR[0], Config::BACKGROUND_COLOR[1], Config::BACKGROUND_COLOR[2], 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
-    P.m_pOnDraw();
+    presenter.m_pOnDraw();
 
-    glfwSwapBuffers(P.m_pWindow);
-    glfwPollEvents();
+    glfwSwapBuffers(presenter.m_pWindow);
 }

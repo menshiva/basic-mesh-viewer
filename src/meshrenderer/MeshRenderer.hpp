@@ -10,14 +10,12 @@ public:
 
     uint8_t &GetSelectedMeshIdxRef() { return m_pSelectedMeshIdx; }
 
-    bool Init(HelperStructs::GLInfo &OutInfo);
+    bool Init(HelperStructs::GLInfo &infoOut);
     void Update();
     void Draw();
     void Destroy();
 private:
-    static bool FillGLInfo(HelperStructs::GLInfo &OutInfo);
+    static bool FillGLInfo(HelperStructs::GLInfo &infoOut);
 
     uint8_t m_pSelectedMeshIdx;
-
-    GLuint m_pBufferId;
 };

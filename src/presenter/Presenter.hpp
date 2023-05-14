@@ -10,15 +10,15 @@ public:
 
     GLFWwindow *GetWindow() const { return m_pWindow; }
 
-    Presenter &WithOnInitCallback(std::function<bool(GLFWwindow*)> &&Callback);
-    Presenter &WithOnUpdateCallback(std::function<void()> &&Callback);
-    Presenter &WithOnDrawCallback(std::function<void()> &&Callback);
-    Presenter &WithOnDestroyCallback(std::function<void()> &&Callback);
+    Presenter &WithOnInitCallback(std::function<bool(GLFWwindow*)> &&callback);
+    Presenter &WithOnUpdateCallback(std::function<void()> &&callback);
+    Presenter &WithOnDrawCallback(std::function<void()> &&callback);
+    Presenter &WithOnDestroyCallback(std::function<void()> &&callback);
 
     int InitGlfwCreateWindowAndLoop();
 private:
-    static GLFWwindow *InitWindow(Presenter *UserPointer);
-    static void Tick(void *PresenterPtr);
+    static GLFWwindow *InitWindow(Presenter *userPointer);
+    static void Tick(void *presenterPtr);
 
     GLFWwindow *m_pWindow;
 
