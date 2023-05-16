@@ -1,4 +1,5 @@
 #include "MeshRenderer.hpp"
+#include <memory>
 #include <fstream>
 #include <sstream>
 #include "../config.hpp"
@@ -81,6 +82,12 @@ bool MeshRenderer::Init(GLInfo &infoOut) {
     if (glewInit() != GLEW_OK)
         return false;
 
+#ifndef __EMSCRIPTEN__
+#if !NDEBUG
+    glDebugMessageCallback(OnGlError, nullptr);
+#endif
+#endif
+
     if (!FillGLInfo(infoOut))
         return false;
 
@@ -145,6 +152,19 @@ void MeshRenderer::OnSelectedMeshIdxChanged() const {
 void MeshRenderer::OnMeshColorChanged() const {
     glUniform3f(m_pColorUniformLocation, m_pMeshColor[0], m_pMeshColor[1], m_pMeshColor[2]);
 }
+
+#if !NDEBUG
+void GLAPIENTRY MeshRenderer::OnGlError(
+    const GLenum, const GLenum, const GLuint, const GLenum severity,
+    const GLsizei, const GLchar *msg,
+    const void*
+) {
+    if (severity != GL_DEBUG_SEVERITY_NOTIFICATION) {
+        fprintf(stderr, "GL Error: %s.\n", msg);
+        exit(1);
+    }
+}
+#endif
 
 bool MeshRenderer::FillGLInfo(GLInfo &infoOut) {
     const auto vendor = (const char*) glGetString(GL_VENDOR);

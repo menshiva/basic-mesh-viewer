@@ -20,6 +20,9 @@ public:
     uint8_t &GetSelectedMeshIdxRef() { return m_pSelectedMeshIdx; }
     float *GetMeshColorRef() { return m_pMeshColor.data(); }
 private:
+#if !NDEBUG
+    static void GLAPIENTRY OnGlError(GLenum, GLenum, GLuint, GLenum severity, GLsizei, const GLchar *msg, const void*);
+#endif
     static bool FillGLInfo(GLInfo &infoOut);
 
     uint8_t m_pSelectedMeshIdx;

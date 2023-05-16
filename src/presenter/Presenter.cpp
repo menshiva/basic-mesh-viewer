@@ -45,6 +45,7 @@ Presenter &Presenter::WithOnDestroyCallback(std::function<void()> &&callback) {
 int Presenter::InitGlfwCreateWindowAndLoop() {
     glfwSetErrorCallback([] (const int error, const char *description) {
         fprintf(stderr, "GLFW Error %d: %s.\n", error, description);
+        exit(1);
     });
     if (!glfwInit())
         return 1;
@@ -85,6 +86,9 @@ GLFWwindow *Presenter::InitWindow(Presenter *userPointer) {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
+#if !NDEBUG
+    glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
+#endif
     if constexpr (Config::WIN_DEFAULT_MAXIMIZED)
         glfwWindowHint(GLFW_MAXIMIZED, GLFW_TRUE);
 #else
