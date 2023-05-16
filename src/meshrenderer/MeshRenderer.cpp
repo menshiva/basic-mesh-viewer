@@ -4,77 +4,6 @@
 #include <sstream>
 #include "../config.hpp"
 
-static bool CompileShader(const GLenum shaderType, const std::string_view path, GLuint &shaderIdOut) {
-    const auto shaderPathWithSuffix = std::unique_ptr<char[]>(new char[path.size() + 5 + 1]);
-    sprintf(shaderPathWithSuffix.get(), shaderType == GL_VERTEX_SHADER ? "%s.vert" : "%s.frag", path.data());
-
-    std::ifstream fileStream(shaderPathWithSuffix.get(), std::ios::in | std::ios::binary);
-    if (!fileStream.is_open()) {
-        fprintf(stderr, "Failed to open shader file %s.\n", shaderPathWithSuffix.get());
-        return false;
-    }
-    std::stringstream fileBuff;
-    fileBuff << fileStream.rdbuf();
-    fileStream.close();
-
-    const auto &fileContent = fileBuff.str();
-
-#ifndef __EMSCRIPTEN__
-    const char *ShaderSrc[2] = {
-        GLSL_VERSION,
-        fileContent.c_str()
-    };
-#else
-    const char *ShaderSrc[3] = {
-        GLSL_VERSION,
-        "precision highp float;\n",
-        fileContent.c_str()
-    };
-#endif
-
-    shaderIdOut = glCreateShader(shaderType);
-    glShaderSource(shaderIdOut, sizeof(ShaderSrc) / sizeof(ShaderSrc[0]), ShaderSrc, nullptr);
-    glCompileShader(shaderIdOut);
-
-    GLint result;
-    glGetShaderiv(shaderIdOut, GL_COMPILE_STATUS, &result);
-    if (!result) {
-        GLint msgLen;
-        glGetShaderiv(shaderIdOut, GL_INFO_LOG_LENGTH, &msgLen);
-        const auto Msg = std::unique_ptr<char[]>(new char[msgLen]);
-        glGetShaderInfoLog(shaderIdOut, msgLen, &msgLen, Msg.get());
-        glDeleteShader(shaderIdOut);
-        printf("Failed to compile %s shader: %s\n", shaderType == GL_VERTEX_SHADER ? "vertex" : "fragment", Msg.get());
-        return false;
-    }
-
-    return true;
-}
-
-static bool CreateProgram(const std::string_view path, GLuint &programIdOut) {
-    programIdOut = glCreateProgram();
-    if (!programIdOut)
-        return false;
-
-    GLuint vertShaderId;
-    if (!CompileShader(GL_VERTEX_SHADER, path, vertShaderId))
-        return false;
-    glAttachShader(programIdOut, vertShaderId);
-
-    GLuint fragShaderID;
-    if (!CompileShader(GL_FRAGMENT_SHADER, path, fragShaderID))
-        return false;
-    glAttachShader(programIdOut, fragShaderID);
-
-    glLinkProgram(programIdOut);
-    glValidateProgram(programIdOut);
-
-    glDeleteShader(vertShaderId);
-    glDeleteShader(fragShaderID);
-
-    return true;
-}
-
 MeshRenderer::MeshRenderer() : m_pSelectedMeshIdx(0), m_pMeshColor(Config::MESH_DEFAULT_COLOR),
                                m_pProgramId(0), m_pColorUniformLocation(), m_pVao{}, m_pVboIbo({0}) {}
 
@@ -91,7 +20,7 @@ bool MeshRenderer::Init(GLInfo &infoOut) {
     if (!FillGLInfo(infoOut))
         return false;
 
-    if (!CreateProgram("res/Basic", m_pProgramId))
+    if (!CreateProgram(Config::SHADER_PATH, m_pProgramId))
         return false;
     glUseProgram(m_pProgramId);
 
@@ -153,19 +82,6 @@ void MeshRenderer::OnMeshColorChanged() const {
     glUniform3f(m_pColorUniformLocation, m_pMeshColor[0], m_pMeshColor[1], m_pMeshColor[2]);
 }
 
-#if !NDEBUG
-void GLAPIENTRY MeshRenderer::OnGlError(
-    const GLenum, const GLenum, const GLuint, const GLenum severity,
-    const GLsizei, const GLchar *msg,
-    const void*
-) {
-    if (severity != GL_DEBUG_SEVERITY_NOTIFICATION) {
-        fprintf(stderr, "GL Error: %s.\n", msg);
-        exit(1);
-    }
-}
-#endif
-
 bool MeshRenderer::FillGLInfo(GLInfo &infoOut) {
     const auto vendor = (const char*) glGetString(GL_VENDOR);
     if (!vendor)
@@ -186,3 +102,87 @@ bool MeshRenderer::FillGLInfo(GLInfo &infoOut) {
     infoOut = {vendor, renderer, version, shadingLanguageVersion};
     return true;
 }
+
+bool MeshRenderer::CompileShader(const GLenum shaderType, const std::string_view path, GLuint &shaderIdOut) {
+    const auto shaderPathWithSuffix = std::unique_ptr<char[]>(new char[path.size() + 5 + 1]);
+    sprintf(shaderPathWithSuffix.get(), shaderType == GL_VERTEX_SHADER ? "%s.vert" : "%s.frag", path.data());
+
+    std::ifstream fileStream(shaderPathWithSuffix.get(), std::ios::in | std::ios::binary);
+    if (!fileStream.is_open()) {
+        fprintf(stderr, "Failed to open shader file %s\n", shaderPathWithSuffix.get());
+        return false;
+    }
+    std::stringstream fileBuff;
+    fileBuff << fileStream.rdbuf();
+    fileStream.close();
+
+    const auto &fileContent = fileBuff.str();
+
+#ifndef __EMSCRIPTEN__
+    const char *ShaderSrc[2] = {
+            GLSL_VERSION,
+            fileContent.c_str()
+    };
+#else
+    const char *ShaderSrc[3] = {
+        GLSL_VERSION,
+        "precision highp float;\n",
+        fileContent.c_str()
+    };
+#endif
+
+    shaderIdOut = glCreateShader(shaderType);
+    glShaderSource(shaderIdOut, sizeof(ShaderSrc) / sizeof(ShaderSrc[0]), ShaderSrc, nullptr);
+    glCompileShader(shaderIdOut);
+
+    GLint result;
+    glGetShaderiv(shaderIdOut, GL_COMPILE_STATUS, &result);
+    if (!result) {
+        GLint msgLen;
+        glGetShaderiv(shaderIdOut, GL_INFO_LOG_LENGTH, &msgLen);
+        const auto Msg = std::unique_ptr<char[]>(new char[msgLen]);
+        glGetShaderInfoLog(shaderIdOut, msgLen, &msgLen, Msg.get());
+        glDeleteShader(shaderIdOut);
+        printf("Failed to compile %s shader: %s\n", shaderType == GL_VERTEX_SHADER ? "vertex" : "fragment", Msg.get());
+        return false;
+    }
+
+    return true;
+}
+
+bool MeshRenderer::CreateProgram(const std::string_view path, GLuint &programIdOut) {
+    programIdOut = glCreateProgram();
+    if (!programIdOut)
+        return false;
+
+    GLuint vertShaderId;
+    if (!CompileShader(GL_VERTEX_SHADER, path, vertShaderId))
+        return false;
+    glAttachShader(programIdOut, vertShaderId);
+
+    GLuint fragShaderID;
+    if (!CompileShader(GL_FRAGMENT_SHADER, path, fragShaderID))
+        return false;
+    glAttachShader(programIdOut, fragShaderID);
+
+    glLinkProgram(programIdOut);
+    glValidateProgram(programIdOut);
+
+    glDeleteShader(vertShaderId);
+    glDeleteShader(fragShaderID);
+
+    return true;
+}
+
+#if !NDEBUG
+void GLAPIENTRY MeshRenderer::OnGlError(
+    const GLenum, const GLenum, const GLuint, const GLenum severity,
+    const GLsizei, const GLchar *msg,
+    const void*
+) {
+    if (severity != GL_DEBUG_SEVERITY_NOTIFICATION) {
+        fprintf(stderr, "GL Error: %s\n", msg);
+        exit(1);
+    }
+}
+#endif

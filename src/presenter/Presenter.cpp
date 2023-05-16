@@ -44,7 +44,7 @@ Presenter &Presenter::WithOnDestroyCallback(std::function<void()> &&callback) {
 
 int Presenter::InitGlfwCreateWindowAndLoop() {
     glfwSetErrorCallback([] (const int error, const char *description) {
-        fprintf(stderr, "GLFW Error %d: %s.\n", error, description);
+        fprintf(stderr, "GLFW Error %d: %s\n", error, description);
         exit(1);
     });
     if (!glfwInit())
@@ -131,7 +131,7 @@ void Presenter::Tick(void *presenterPtr) {
     glfwGetFramebufferSize(presenter.m_pWindow, &w, &h);
     glViewport(0, 0, w, h);
 
-    glClearColor(Config::BACKGROUND_COLOR[0], Config::BACKGROUND_COLOR[1], Config::BACKGROUND_COLOR[2], 1.0f);
+    glClearColor(Config::BACKGROUND_COLOR.r, Config::BACKGROUND_COLOR.g, Config::BACKGROUND_COLOR.b, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);
 
     presenter.m_pOnDraw();
