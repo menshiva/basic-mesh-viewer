@@ -3,11 +3,12 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 #include "imgui_internal.h"
+#include "../config.hpp"
 
 // TODO: make adaptive
 // TODO: better touch gestures on smartphones
 
-bool UI::Init(const HelperStructs::GLInfo &glInfo, GLFWwindow *window) {
+bool UI::Init(const GLInfo &glInfo, GLFWwindow *window) {
     m_pInfo = glInfo;
 
     IMGUI_CHECKVERSION();
@@ -69,7 +70,7 @@ void UI::Update(uint8_t &selectedMeshIdx, float *meshColor) const {
     ImGui::End();
 
     // TODO
-    /*static bool showDemoWindow = true;
+    static bool showDemoWindow = true;
     static bool showAnotherWindow = false;
 
     // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
@@ -107,7 +108,7 @@ void UI::Update(uint8_t &selectedMeshIdx, float *meshColor) const {
         if (ImGui::Button("Close Me"))
             showAnotherWindow = false;
         ImGui::End();
-    }*/
+    }
 
     ImGui::EndFrame();
 }
@@ -159,7 +160,7 @@ void UI::ColorSection(const float availableParentWidth, float *meshColor) const 
     }
 }
 
-void UI::InfoAndMetricsSection(const HelperStructs::GLInfo &glInfo, const float framerate) {
+void UI::InfoAndMetricsSection(const GLInfo &glInfo, const float framerate) {
     ImGui::SeparatorText("Info and Metrics");
 
     ImGui::Text("OpenGL implementation vendor: %s", glInfo.m_Vendor.data());

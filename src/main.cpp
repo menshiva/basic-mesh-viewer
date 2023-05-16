@@ -3,7 +3,7 @@
 #include "ui/Ui.hpp"
 
 static bool OnInit(GLFWwindow *window, MeshRenderer &renderer, UI &ui) {
-    HelperStructs::GLInfo glInfo;
+    GLInfo glInfo;
     return renderer.Init(glInfo) && ui.Init(glInfo, window);
 }
 

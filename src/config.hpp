@@ -2,6 +2,12 @@
 
 #include <array>
 
+#ifndef __EMSCRIPTEN__
+#define GLSL_VERSION "#version 330 core\n"
+#else
+#define GLSL_VERSION "#version 300 es\n"
+#endif
+
 namespace Config {
     constexpr static inline int         WIN_MIN_WIDTH = 1280;
     constexpr static inline int         WIN_MIN_HEIGHT = 720;

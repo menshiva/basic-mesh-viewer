@@ -1,5 +1,4 @@
 #include "MeshRenderer.hpp"
-#include <memory>
 #include <fstream>
 #include <sstream>
 #include "../config.hpp"
@@ -76,9 +75,9 @@ static bool CreateProgram(const std::string_view path, GLuint &programIdOut) {
 }
 
 MeshRenderer::MeshRenderer() : m_pSelectedMeshIdx(0), m_pMeshColor(Config::MESH_DEFAULT_COLOR),
-                               m_pProgramId(0), m_ColorUniformLocation(), m_pVboIbo({0}) {}
+                               m_pProgramId(0), m_pColorUniformLocation(), m_pVao{}, m_pVboIbo({0}) {}
 
-bool MeshRenderer::Init(HelperStructs::GLInfo &infoOut) {
+bool MeshRenderer::Init(GLInfo &infoOut) {
     if (glewInit() != GLEW_OK)
         return false;
 
@@ -89,7 +88,7 @@ bool MeshRenderer::Init(HelperStructs::GLInfo &infoOut) {
         return false;
     glUseProgram(m_pProgramId);
 
-    m_ColorUniformLocation = glGetUniformLocation(m_pProgramId, "u_Color");
+    m_pColorUniformLocation = glGetUniformLocation(m_pProgramId, "u_Color");
     OnMeshColorChanged();
 
     const float positions[] = {
@@ -103,6 +102,9 @@ bool MeshRenderer::Init(HelperStructs::GLInfo &infoOut) {
         0, 1, 2,
         2, 3, 0
     };
+
+    glGenVertexArrays(1, &m_pVao);
+    glBindVertexArray(m_pVao);
 
     glGenBuffers((GLsizei) m_pVboIbo.size(), m_pVboIbo.data());
 
@@ -128,8 +130,10 @@ void MeshRenderer::Draw() {
 }
 
 void MeshRenderer::Destroy() {
+    // TODO
     if (m_pProgramId) {
         glDeleteBuffers((GLsizei) m_pVboIbo.size(), m_pVboIbo.data());
+        glDeleteVertexArrays(1, &m_pVao);
         glDeleteProgram(m_pProgramId);
     }
 }
@@ -139,10 +143,10 @@ void MeshRenderer::OnSelectedMeshIdxChanged() const {
 }
 
 void MeshRenderer::OnMeshColorChanged() const {
-    glUniform3f(m_ColorUniformLocation, m_pMeshColor[0], m_pMeshColor[1], m_pMeshColor[2]);
+    glUniform3f(m_pColorUniformLocation, m_pMeshColor[0], m_pMeshColor[1], m_pMeshColor[2]);
 }
 
-bool MeshRenderer::FillGLInfo(HelperStructs::GLInfo &infoOut) {
+bool MeshRenderer::FillGLInfo(GLInfo &infoOut) {
     const auto vendor = (const char*) glGetString(GL_VENDOR);
     if (!vendor)
         return false;

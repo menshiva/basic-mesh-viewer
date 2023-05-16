@@ -3,13 +3,13 @@
 #include <cstdint>
 #include <array>
 #include <GL/glew.h>
-#include "../helper.hpp"
+#include "GLInfo.hpp"
 
 class MeshRenderer {
 public:
     MeshRenderer();
 
-    bool Init(HelperStructs::GLInfo &infoOut);
+    bool Init(GLInfo &infoOut);
     static void Update();
     static void Draw();
     void Destroy();
@@ -20,12 +20,13 @@ public:
     uint8_t &GetSelectedMeshIdxRef() { return m_pSelectedMeshIdx; }
     float *GetMeshColorRef() { return m_pMeshColor.data(); }
 private:
-    static bool FillGLInfo(HelperStructs::GLInfo &infoOut);
+    static bool FillGLInfo(GLInfo &infoOut);
 
     uint8_t m_pSelectedMeshIdx;
     std::array<float, 3> m_pMeshColor;
 
     GLuint m_pProgramId;
-    GLint m_ColorUniformLocation;
+    GLint m_pColorUniformLocation;
+    GLuint m_pVao;
     std::array<GLuint, 2> m_pVboIbo;
 };
