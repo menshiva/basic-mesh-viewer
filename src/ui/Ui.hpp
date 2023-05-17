@@ -6,17 +6,20 @@
 class UI {
 public:
     bool Init(const GLInfo &glInfo, struct GLFWwindow *window);
-    void Update(uint8_t &selectedMeshIdx, float *meshColor) const;
+    void Update(uint8_t &selectedMeshIdx, bool &colorSpecified, float *meshColor);
     static void Draw();
     static void Destroy();
 
     UI &WithOnSelectedMeshIdxChangedCallback(std::function<void()> &&callback);
-    UI &WithOnColorChangedCallback(std::function<void()> &&callback);
+    UI &WithOnIsColorSpecifiedChangedCallback(std::function<void()> &&callback);
+    UI &WithOnSpecifiedColorChangedCallback(std::function<void()> &&callback);
+
+    float m_DeltaTime;
 private:
     void MeshSection(uint8_t &selectedMeshIdx) const;
-    void ColorSection(float availableParentWidth, float *meshColor) const;
-    static void InfoAndMetricsSection(const GLInfo &glInfo, float framerate);
+    void ColorSection(bool &specified, float *meshColor) const;
+    void InfoAndMetricsSection() const;
 
-    std::function<void()> m_pOnSelectedMeshIdxChanged, m_pOnColorChanged;
+    std::function<void()> m_pOnSelectedMeshIdxChanged, m_pOnIsColorSpecifiedChanged, m_pOnSpecifiedColorChanged;
     GLInfo m_pInfo;
 };

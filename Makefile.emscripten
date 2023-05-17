@@ -3,6 +3,7 @@ CXX = em++
 
 WEB_DIR = web
 IMGUI_DIR = include/imgui
+GLM_DIR = include/glm
 SRC_DIR = src
 RES_DIR = res
 OBJ_DIR = web_build
@@ -37,6 +38,7 @@ LDFLAGS += --no-heap-copy --embed-file $(RES_DIR)
 ##---------------------------------------------------------------------
 
 CPPFLAGS += -I$(IMGUI_DIR) -I$(IMGUI_DIR)/backends
+CPPFLAGS += -I$(GLM_DIR)
 #CPPFLAGS += -g
 CPPFLAGS += -Wall -Wformat -Os $(EMS)
 #LDFLAGS += --shell-file $(SRC_DIR)/emscripten/shell_minimal.html

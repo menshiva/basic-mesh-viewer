@@ -43,7 +43,7 @@ bool UI::Init(const GLInfo &glInfo, GLFWwindow *window) {
     return true;
 }
 
-void UI::Update(uint8_t &selectedMeshIdx, float *meshColor) const {
+void UI::Update(uint8_t &selectedMeshIdx, bool &colorSpecified, float *meshColor) {
     auto &io = ImGui::GetIO();
 
     ImGui_ImplOpenGL3_NewFrame();
@@ -52,25 +52,27 @@ void UI::Update(uint8_t &selectedMeshIdx, float *meshColor) const {
 
     // TODO
     // hard-coded for now
-    // ImGui::SetNextWindowSize(ImVec2(338.0f, 475.0f), ImGuiCond_Once);
+    ImGui::SetNextWindowSize(ImVec2(382.0f, 190.0f), ImGuiCond_Once);
 
-    // const auto &viewport = ImGui::GetMainViewport();
-    // ImGui::SetNextWindowPos(
-    //     ImVec2(viewport->Pos.x + viewport->Size.x, 0.0f),
-    //     ImGuiCond_Always, ImVec2(1.0f, 0.0f)
-    // );
+    const auto &viewport = ImGui::GetMainViewport();
+    ImGui::SetNextWindowPos(
+        ImVec2(viewport->Pos.x + viewport->Size.x, 0.0f),
+        ImGuiCond_Always, ImVec2(1.0f, 0.0f)
+    );
 
     ImGui::Begin("##Main##", nullptr/*, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove*/);
-    const float availableWidth = ImGui::GetContentRegionAvail().x;
 
-    MeshSection(selectedMeshIdx);
-    ColorSection(availableWidth, meshColor);
-    InfoAndMetricsSection(m_pInfo, io.Framerate);
+    // TODO
+    // MeshSection(selectedMeshIdx);
+    ColorSection(colorSpecified, meshColor);
+    InfoAndMetricsSection();
 
     ImGui::End();
 
+    m_DeltaTime = io.DeltaTime;
+
     // TODO
-    static bool showDemoWindow = true;
+    /*static bool showDemoWindow = true;
     static bool showAnotherWindow = false;
 
     // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
@@ -108,7 +110,7 @@ void UI::Update(uint8_t &selectedMeshIdx, float *meshColor) const {
         if (ImGui::Button("Close Me"))
             showAnotherWindow = false;
         ImGui::End();
-    }
+    }*/
 
     ImGui::EndFrame();
 }
@@ -129,8 +131,13 @@ UI &UI::WithOnSelectedMeshIdxChangedCallback(std::function<void()> &&callback) {
     return *this;
 }
 
-UI &UI::WithOnColorChangedCallback(std::function<void()> &&callback) {
-    m_pOnColorChanged = callback;
+UI &UI::WithOnIsColorSpecifiedChangedCallback(std::function<void()> &&callback) {
+    m_pOnIsColorSpecifiedChanged = callback;
+    return *this;
+}
+
+UI &UI::WithOnSpecifiedColorChangedCallback(std::function<void()> &&callback) {
+    m_pOnSpecifiedColorChanged = callback;
     return *this;
 }
 
@@ -146,27 +153,31 @@ void UI::MeshSection(uint8_t &selectedMeshIdx) const {
     }
 }
 
-void UI::ColorSection(const float availableParentWidth, float *meshColor) const {
+void UI::ColorSection(bool &specified, float *meshColor) const {
     ImGui::SeparatorText("Color");
-    const float colorOffset = (availableParentWidth - ImGui::CalcItemWidth()) * 0.5f;
-    if (colorOffset > 0.0f)
-        ImGui::SetCursorPosX(ImGui::GetCursorPosX() + colorOffset);
-    // TODO: color options
-    if (ImGui::ColorPicker3(
+
+    if (ImGui::Checkbox("##Specified##", &specified))
+        m_pOnIsColorSpecifiedChanged();
+
+    ImGui::SameLine();
+
+    ImGui::BeginDisabled(!specified);
+    if (ImGui::ColorEdit3(
         "##Mesh Color##", meshColor,
-        ImGuiColorEditFlags_PickerHueWheel | ImGuiColorEditFlags_NoSidePreview | ImGuiColorEditFlags_NoAlpha
+        ImGuiColorEditFlags_InputRGB | ImGuiColorEditFlags_NoAlpha | ImGuiColorEditFlags_DisplayRGB
     )) {
-        m_pOnColorChanged();
+        m_pOnSpecifiedColorChanged();
     }
+    ImGui::EndDisabled();
 }
 
-void UI::InfoAndMetricsSection(const GLInfo &glInfo, const float framerate) {
+void UI::InfoAndMetricsSection() const {
     ImGui::SeparatorText("Info and Metrics");
 
-    ImGui::Text("OpenGL implementation vendor: %s", glInfo.m_Vendor.data());
-    ImGui::Text("Renderer: %s", glInfo.m_Renderer.data());
-    ImGui::Text("OpenGL version supported: %s", glInfo.m_Version.data());
-    ImGui::Text("OpenGL shading language: %s", glInfo.m_ShadingLanguageVersion.data());
+    ImGui::Text("OpenGL implementation vendor: %s", m_pInfo.m_Vendor.data());
+    ImGui::Text("Renderer: %s", m_pInfo.m_Renderer.data());
+    ImGui::Text("OpenGL version supported: %s", m_pInfo.m_Version.data());
+    ImGui::Text("OpenGL shading language: %s", m_pInfo.m_ShadingLanguageVersion.data());
 
     ImGui::Separator();
 
@@ -174,5 +185,5 @@ void UI::InfoAndMetricsSection(const GLInfo &glInfo, const float framerate) {
     // const float metricsOffset = (availableWidth - ImGui::CalcTextSize()) * 0.5f;
     // if (metricsOffset > 0.0f)
     //     ImGui::SetCursorPosX(ImGui::GetCursorPosX() + metricsOffset);
-    ImGui::Text("Performance: %.1f FPS", framerate);
+    ImGui::Text("Performance: %.1f FPS", ImGui::GetIO().Framerate);
 }

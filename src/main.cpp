@@ -1,6 +1,7 @@
+#define GLM_FORCE_MESSAGES
 #include "meshrenderer/MeshRenderer.hpp"
-#include "presenter/Presenter.hpp"
 #include "ui/Ui.hpp"
+#include "presenter/Presenter.hpp"
 
 static bool OnInit(GLFWwindow *window, MeshRenderer &renderer, UI &ui) {
     GLInfo glInfo;
@@ -8,8 +9,8 @@ static bool OnInit(GLFWwindow *window, MeshRenderer &renderer, UI &ui) {
 }
 
 static void OnUpdate(MeshRenderer &renderer, UI &ui) {
-    ui.Update(renderer.GetSelectedMeshIdxRef(), renderer.GetMeshColorRef());
-    MeshRenderer::Update();
+    ui.Update(renderer.GetSelectedMeshIdxRef(), renderer.GetIsColorSpecifiedRef(), renderer.GetSpecifiedColorRef());
+    renderer.Update(ui.m_DeltaTime);
 }
 
 static void OnDraw() {
@@ -30,8 +31,11 @@ int main() {
         .WithOnSelectedMeshIdxChangedCallback([&renderer] {
             renderer.OnSelectedMeshIdxChanged();
         })
-        .WithOnColorChangedCallback([&renderer] {
-            renderer.OnMeshColorChanged();
+        .WithOnIsColorSpecifiedChangedCallback([&renderer] {
+            renderer.OnIsColorSpecifiedChanged();
+        })
+        .WithOnSpecifiedColorChangedCallback([&renderer] {
+            renderer.OnSpecifiedColorChanged();
         });
 
     Presenter presenter;

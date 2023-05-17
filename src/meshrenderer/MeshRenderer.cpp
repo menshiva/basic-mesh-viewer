@@ -2,10 +2,7 @@
 #include <memory>
 #include <fstream>
 #include <sstream>
-#include "../config.hpp"
-
-MeshRenderer::MeshRenderer() : m_pSelectedMeshIdx(0), m_pMeshColor(Config::MESH_DEFAULT_COLOR),
-                               m_pProgramId(0), m_pColorUniformLocation(), m_pVao{}, m_pVboIbo({0}) {}
+#include <glm/gtx/color_space.hpp>
 
 bool MeshRenderer::Init(GLInfo &infoOut) {
     if (glewInit() != GLEW_OK)
@@ -25,7 +22,9 @@ bool MeshRenderer::Init(GLInfo &infoOut) {
     glUseProgram(m_pProgramId);
 
     m_pColorUniformLocation = glGetUniformLocation(m_pProgramId, "u_Color");
-    OnMeshColorChanged();
+    UpdateMeshColor(m_pSpecifiedColor);
+    if (!m_pIsColorSpecified) // to enable transition on start
+        OnIsColorSpecifiedChanged();
 
     const float positions[] = {
         -0.5f, -0.5f,
@@ -57,8 +56,34 @@ bool MeshRenderer::Init(GLInfo &infoOut) {
     return true;
 }
 
-void MeshRenderer::Update() {
-    // TODO
+void MeshRenderer::Update(const float deltaTime) {
+    if (m_pAnimInterpolant != -1.0f) {
+        // here m_pAnimColorCurrent and m_pAnimColorTo are in RGB
+        m_pAnimInterpolant += deltaTime * 5.0f;
+        if (m_pAnimInterpolant < 1.0f) {
+            UpdateMeshColor(glm::mix(m_pAnimColorCurrent, m_pAnimColorTo, m_pAnimInterpolant));
+        }
+        else {
+            m_pAnimInterpolant = -1.0f;
+            if (!m_pIsColorSpecified) {
+                m_pAnimColorCurrent = glm::hsvColor(m_pAnimColorTo);
+                if (glm::isnan(m_pAnimColorCurrent.x))
+                    m_pAnimColorCurrent.x = 0.0f;
+                if (glm::isnan(m_pAnimColorCurrent.y))
+                    m_pAnimColorCurrent.y = 0.0f;
+                if (glm::isnan(m_pAnimColorCurrent.z))
+                    m_pAnimColorCurrent.z = 0.0f;
+            }
+        }
+    }
+
+    if (m_pAnimInterpolant == -1.0f && !m_pIsColorSpecified) {
+        // here m_pAnimColorCurrent is in HSV
+        UpdateMeshColor(glm::rgbColor(m_pAnimColorCurrent));
+        m_pAnimColorCurrent.x += deltaTime * 150.0f;
+        if (m_pAnimColorCurrent.x > 360.0f)
+            m_pAnimColorCurrent.x -= 360.0f;
+    }
 }
 
 void MeshRenderer::Draw() {
@@ -78,8 +103,21 @@ void MeshRenderer::OnSelectedMeshIdxChanged() const {
     // TODO
 }
 
-void MeshRenderer::OnMeshColorChanged() const {
-    glUniform3f(m_pColorUniformLocation, m_pMeshColor[0], m_pMeshColor[1], m_pMeshColor[2]);
+void MeshRenderer::OnIsColorSpecifiedChanged() {
+    if (!m_pIsColorSpecified) {
+        m_pAnimColorCurrent = m_pSpecifiedColor;
+        m_pAnimColorTo = glm::hsvColor(m_pSpecifiedColor);
+        if (glm::isnan(m_pAnimColorTo.x))
+            m_pAnimColorTo.x = 0.0f;
+        m_pAnimColorTo.y = m_pAnimColorTo.z = 1.0f;
+        m_pAnimColorTo = glm::rgbColor(m_pAnimColorTo);
+    }
+    else {
+        m_pAnimColorCurrent = glm::rgbColor(m_pAnimColorCurrent);
+        m_pAnimColorTo = m_pSpecifiedColor;
+    }
+
+    m_pAnimInterpolant = 0.0f;
 }
 
 bool MeshRenderer::FillGLInfo(GLInfo &infoOut) {
@@ -120,8 +158,8 @@ bool MeshRenderer::CompileShader(const GLenum shaderType, const std::string_view
 
 #ifndef __EMSCRIPTEN__
     const char *ShaderSrc[2] = {
-            GLSL_VERSION,
-            fileContent.c_str()
+        GLSL_VERSION,
+        fileContent.c_str()
     };
 #else
     const char *ShaderSrc[3] = {
@@ -172,6 +210,10 @@ bool MeshRenderer::CreateProgram(const std::string_view path, GLuint &programIdO
     glDeleteShader(fragShaderID);
 
     return true;
+}
+
+void MeshRenderer::UpdateMeshColor(const glm::vec3 &color) const {
+    glUniform3f(m_pColorUniformLocation, color.r, color.g, color.b);
 }
 
 #if !NDEBUG

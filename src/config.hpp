@@ -1,6 +1,5 @@
 #pragma once
 
-#include <array>
 #include <glm/vec3.hpp>
 
 #ifndef __EMSCRIPTEN__
@@ -17,8 +16,9 @@ namespace Config {
     constexpr static inline const char *WIN_TITLE = "Basic Mesh Viewer";
     constexpr static inline bool        WIN_DEFAULT_MAXIMIZED = true;
 
-    constexpr static inline glm::vec3    BACKGROUND_COLOR = {0.36f, 0.6f, 0.65f};
-    constexpr static inline glm::vec3    MESH_DEFAULT_COLOR = {1.0f, 1.0f, 1.0f};
+    constexpr static inline glm::vec3   BACKGROUND_COLOR = glm::vec3(0.07f);
+    constexpr static inline bool        IS_COLOR_SPECIFIED = false;
+    constexpr static inline glm::vec3   MESH_DEFAULT_COLOR = glm::vec3(1.0f, 1.0f, 1.0f);
 
     constexpr static inline const char *SHADER_PATH = "res/Basic";
 }
