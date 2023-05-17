@@ -9,7 +9,7 @@ static bool OnInit(GLFWwindow *window, MeshRenderer &renderer, UI &ui) {
 }
 
 static void OnUpdate(MeshRenderer &renderer, UI &ui) {
-    ui.Update(renderer.GetSelectedMeshIdxRef(), renderer.GetIsColorSpecifiedRef(), renderer.GetSpecifiedColorRef());
+    ui.Update(renderer.GetIsColorSpecifiedRef(), renderer.GetSpecifiedColorRef());
     renderer.Update(ui.m_DeltaTime);
 }
 
@@ -28,9 +28,6 @@ int main() {
 
     UI ui;
     ui
-        .WithOnSelectedMeshIdxChangedCallback([&renderer] {
-            renderer.OnSelectedMeshIdxChanged();
-        })
         .WithOnIsColorSpecifiedChangedCallback([&renderer] {
             renderer.OnIsColorSpecifiedChanged();
         })

@@ -43,7 +43,7 @@ bool UI::Init(const GLInfo &glInfo, GLFWwindow *window) {
     return true;
 }
 
-void UI::Update(uint8_t &selectedMeshIdx, bool &colorSpecified, float *meshColor) {
+void UI::Update(bool &colorSpecified, float *meshColor) {
     auto &io = ImGui::GetIO();
 
     ImGui_ImplOpenGL3_NewFrame();
@@ -126,11 +126,6 @@ void UI::Destroy() {
     ImGui::DestroyContext();
 }
 
-UI &UI::WithOnSelectedMeshIdxChangedCallback(std::function<void()> &&callback) {
-    m_pOnSelectedMeshIdxChanged = callback;
-    return *this;
-}
-
 UI &UI::WithOnIsColorSpecifiedChangedCallback(std::function<void()> &&callback) {
     m_pOnIsColorSpecifiedChanged = callback;
     return *this;
@@ -139,18 +134,6 @@ UI &UI::WithOnIsColorSpecifiedChangedCallback(std::function<void()> &&callback) 
 UI &UI::WithOnSpecifiedColorChangedCallback(std::function<void()> &&callback) {
     m_pOnSpecifiedColorChanged = callback;
     return *this;
-}
-
-void UI::MeshSection(uint8_t &selectedMeshIdx) const {
-    ImGui::SeparatorText("Mesh");
-    for (uint8_t i = 0; i < 5; ++i) {
-        char buf[32];
-        sprintf(buf, "Object %d", i);
-        if (ImGui::Selectable(buf, selectedMeshIdx == i)) {
-            selectedMeshIdx = i;
-            m_pOnSelectedMeshIdxChanged();
-        }
-    }
 }
 
 void UI::ColorSection(bool &specified, float *meshColor) const {

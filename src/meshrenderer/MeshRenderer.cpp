@@ -26,18 +26,6 @@ bool MeshRenderer::Init(GLInfo &infoOut) {
     if (!m_pIsColorSpecified) // to enable transition on start
         OnIsColorSpecifiedChanged();
 
-    const float positions[] = {
-        -0.5f, -0.5f,
-        0.5f, -0.5f,
-        0.5f, 0.5f,
-        -0.5f, 0.5f,
-    };
-
-    const uint8_t indices[] = {
-        0, 1, 2,
-        2, 3, 0
-    };
-
     glGenVertexArrays(1, &m_pVao);
     glBindVertexArray(m_pVao);
 
@@ -50,9 +38,8 @@ bool MeshRenderer::Init(GLInfo &infoOut) {
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_pVboIbo[1]);
 
-    glBufferData(GL_ARRAY_BUFFER, sizeof(positions), positions, GL_STATIC_DRAW);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-
+    // to load vert positions and indices into VRAM
+    OnCurrentMeshSettingsChanged();
     return true;
 }
 
@@ -99,8 +86,14 @@ void MeshRenderer::Destroy() {
     }
 }
 
-void MeshRenderer::OnSelectedMeshIdxChanged() const {
-    // TODO
+void MeshRenderer::OnCurrentMeshSettingsChanged() const {
+    m_pCurrentMesh->OnMeshSettingsChanged();
+
+    const auto &vertPositions = m_pCurrentMesh->GetVertexPositions();
+    const auto &indices = m_pCurrentMesh->GetIndices();
+
+    glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr) vertPositions.size() * 2 * (GLsizeiptr) sizeof(float), vertPositions.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, (GLsizeiptr) indices.size(), indices.data(), GL_STATIC_DRAW);
 }
 
 void MeshRenderer::OnIsColorSpecifiedChanged() {

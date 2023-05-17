@@ -2,7 +2,9 @@
 
 #include <cstdint>
 #include <array>
+#include <memory>
 #include <GL/glew.h>
+#include "mesh/Polygon2D.hpp"
 #include "GLInfo.hpp"
 #include "../config.hpp"
 
@@ -13,11 +15,11 @@ public:
     static void Draw();
     void Destroy();
 
-    void OnSelectedMeshIdxChanged() const;
+    void OnCurrentMeshSettingsChanged() const;
     void OnIsColorSpecifiedChanged();
     void OnSpecifiedColorChanged() const { UpdateMeshColor(m_pSpecifiedColor); }
 
-    uint8_t &GetSelectedMeshIdxRef() { return m_pSelectedMeshIdx; }
+    MeshSettings &GetCurrentMeshSettings() { return m_pCurrentMesh->GetMeshSettingsRef(); }
     bool &GetIsColorSpecifiedRef() { return m_pIsColorSpecified; }
     float *GetSpecifiedColorRef() { return &m_pSpecifiedColor.x; }
 private:
@@ -32,7 +34,7 @@ private:
     static void GLAPIENTRY OnGlError(GLenum, GLenum, GLuint, GLenum severity, GLsizei, const GLchar *msg, const void*);
 #endif
 
-    uint8_t m_pSelectedMeshIdx = 0;
+    std::unique_ptr<Mesh> m_pCurrentMesh = std::make_unique<Polygon2D>();
     bool m_pIsColorSpecified = Config::IS_COLOR_SPECIFIED;
     glm::vec3 m_pSpecifiedColor = Config::MESH_DEFAULT_COLOR;
 
