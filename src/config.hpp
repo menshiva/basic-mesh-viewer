@@ -18,7 +18,7 @@ namespace Config {
 
     constexpr static inline glm::vec3   BACKGROUND_COLOR = glm::vec3(0.07f);
     constexpr static inline bool        IS_COLOR_SPECIFIED = false;
-    constexpr static inline glm::vec3   MESH_DEFAULT_COLOR = glm::vec3(1.0f, 1.0f, 1.0f);
+    constexpr static inline glm::vec3   MESH_DEFAULT_COLOR = glm::vec3(1.0f);
 
     constexpr static inline const char *SHADER_PATH = "res/Basic";
 }

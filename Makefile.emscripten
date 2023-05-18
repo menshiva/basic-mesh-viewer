@@ -41,7 +41,7 @@ CPPFLAGS += -I$(IMGUI_DIR) -I$(IMGUI_DIR)/backends
 CPPFLAGS += -I$(GLM_DIR)
 #CPPFLAGS += -g
 CPPFLAGS += -Wall -Wformat -Os $(EMS)
-#LDFLAGS += --shell-file $(SRC_DIR)/emscripten/shell_minimal.html
+LDFLAGS += --shell-file $(RES_DIR)/shell_minimal.html
 LDFLAGS += $(EMS)
 
 ##---------------------------------------------------------------------

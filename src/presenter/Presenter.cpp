@@ -1,17 +1,10 @@
 #include "Presenter.hpp"
 #include <cstdio>
+#include <GLFW/glfw3.h>
 #include "../config.hpp"
-
 #ifdef __EMSCRIPTEN__
 #include <emscripten.h>
 #include <emscripten/html5.h>
-
-EM_BOOL EmscriptenWindowResizedCallback(const int, const void*, void *presenterPtr) {
-    double width, height;
-    emscripten_get_element_css_size("canvas", &width, &height);
-    glfwSetWindowSize(((Presenter*) presenterPtr)->GetWindow(), (int) width, (int) height);
-    return true;
-}
 #endif
 
 Presenter::Presenter() : m_pWindow(nullptr) {}
@@ -65,16 +58,7 @@ int Presenter::InitGlfwCreateWindowAndLoop() {
         Tick(this);
 #else
     emscripten_set_window_title(Config::WIN_TITLE);
-
-    if constexpr (Config::WIN_DEFAULT_MAXIMIZED) {
-        EmscriptenFullscreenStrategy strategy;
-	    strategy.scaleMode = EMSCRIPTEN_FULLSCREEN_CANVAS_SCALE_STDDEF;
-	    strategy.filteringMode = EMSCRIPTEN_FULLSCREEN_FILTERING_DEFAULT;
-	    strategy.canvasResizedCallback = EmscriptenWindowResizedCallback;
-        strategy.canvasResizedCallbackUserData = this;
-	    emscripten_enter_soft_fullscreen("canvas", &strategy);
-    }
-
+    EmscriptenWindowResizedCallback(EMSCRIPTEN_EVENT_RESIZE, nullptr, this);
     emscripten_set_main_loop_arg(Presenter::Tick, this, 0, true);
 #endif
 
@@ -105,20 +89,42 @@ GLFWwindow *Presenter::InitWindow(Presenter *userPointer) {
     if (!window)
         return nullptr;
 
+    glfwSetWindowUserPointer(window, userPointer);
 #ifndef __EMSCRIPTEN__
     glfwSetWindowSizeLimits(
         window,
         Config::WIN_MIN_WIDTH, Config::WIN_MIN_HEIGHT,
         GLFW_DONT_CARE, GLFW_DONT_CARE
     );
-
-    glfwSetWindowUserPointer(window, userPointer);
-    glfwSetFramebufferSizeCallback(window, [] (GLFWwindow *window, int, int) {
-        Presenter::Tick((Presenter*) glfwGetWindowUserPointer(window));
-    });
+    glfwSetFramebufferSizeCallback(window, OnWindowResized);
+#else
+    emscripten_set_resize_callback(EMSCRIPTEN_EVENT_TARGET_WINDOW, userPointer, EM_TRUE, EmscriptenWindowResizedCallback);
 #endif
 
     return window;
+}
+
+#ifdef __EMSCRIPTEN__
+EM_BOOL Presenter::EmscriptenWindowResizedCallback(const int eventType, const EmscriptenUiEvent*, void *userData) {
+    if (eventType == EMSCRIPTEN_EVENT_RESIZE) {
+        double width, height;
+        emscripten_get_element_css_size("canvas", &width, &height);
+
+        auto &presenter = *((Presenter*) userData);
+        glfwSetWindowSize(presenter.m_pWindow, width, height);
+        OnWindowResized(presenter.m_pWindow, width, height);
+
+        return true;
+    }
+    return false;
+}
+#endif
+
+void Presenter::OnWindowResized(GLFWwindow *window, const int w, const int h) {
+    glViewport(0, 0, w, h);
+#ifndef __EMSCRIPTEN__
+    Presenter::Tick((Presenter*) glfwGetWindowUserPointer(window));
+#endif
 }
 
 void Presenter::Tick(void *presenterPtr) {
@@ -126,10 +132,6 @@ void Presenter::Tick(void *presenterPtr) {
 
     glfwPollEvents();
     presenter.m_pOnUpdate();
-
-    int w, h;
-    glfwGetFramebufferSize(presenter.m_pWindow, &w, &h);
-    glViewport(0, 0, w, h);
 
     glClearColor(Config::BACKGROUND_COLOR.r, Config::BACKGROUND_COLOR.g, Config::BACKGROUND_COLOR.b, 1.0f);
     glClear(GL_COLOR_BUFFER_BIT);

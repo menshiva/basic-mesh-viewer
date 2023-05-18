@@ -1,23 +1,26 @@
 #pragma once
 
 #include <functional>
-#include <GLFW/glfw3.h>
 
 class Presenter {
 public:
     Presenter();
     ~Presenter();
 
-    Presenter &WithOnInitCallback(std::function<bool(GLFWwindow*)> &&callback);
+    Presenter &WithOnInitCallback(std::function<bool(struct GLFWwindow*)> &&callback);
     Presenter &WithOnUpdateCallback(std::function<void()> &&callback);
     Presenter &WithOnDrawCallback(std::function<void()> &&callback);
     Presenter &WithOnDestroyCallback(std::function<void()> &&callback);
 
     int InitGlfwCreateWindowAndLoop();
-
-    GLFWwindow *GetWindow() const { return m_pWindow; }
 private:
     static GLFWwindow *InitWindow(Presenter *userPointer);
+
+#ifdef __EMSCRIPTEN__
+    static int EmscriptenWindowResizedCallback(int eventType, const struct EmscriptenUiEvent*, void *userData);
+#endif
+    static void OnWindowResized(GLFWwindow *window, int w, int h);
+
     static void Tick(void *presenterPtr);
 
     GLFWwindow *m_pWindow;
