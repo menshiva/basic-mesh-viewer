@@ -12,6 +12,7 @@ public:
     MeshRenderer();
 
     bool Init(GLInfo &infoOut);
+    void Resize(int w, int h) const;
     void Update(float deltaTime, bool IsColorSpecifiedChanged, bool IsColorChanged);
     static void Draw();
     void Destroy();
@@ -40,7 +41,7 @@ private:
     glm::vec3 m_pSpecifiedColor;
 
     GLuint m_pProgramId;
-    GLint m_pColorUniformLocation;
+    GLint m_pAspectRatioUniformLocation, m_pColorUniformLocation;
     GLuint m_pVao;
     std::array<GLuint, 2> m_pVboIbo;
 

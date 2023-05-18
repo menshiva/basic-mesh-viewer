@@ -7,7 +7,7 @@
 
 MeshRenderer::MeshRenderer() : m_pCurrentMesh(new Polygon2D()), m_pIsColorSpecified(Config::IS_COLOR_SPECIFIED),
                                m_pSpecifiedColor(Config::MESH_DEFAULT_COLOR),
-                               m_pProgramId{}, m_pColorUniformLocation{}, m_pVao{}, m_pVboIbo{},
+                               m_pProgramId{}, m_pAspectRatioUniformLocation{}, m_pColorUniformLocation{}, m_pVao{}, m_pVboIbo{},
                                m_pAnimColorCurrent(m_pSpecifiedColor), m_pAnimColorTo(m_pSpecifiedColor), m_pAnimInterpolant(-1.0f) {}
 
 bool MeshRenderer::Init(GLInfo &infoOut) {
@@ -27,7 +27,9 @@ bool MeshRenderer::Init(GLInfo &infoOut) {
         return false;
     glUseProgram(m_pProgramId);
 
+    m_pAspectRatioUniformLocation = glGetUniformLocation(m_pProgramId, "u_AspectRatio");
     m_pColorUniformLocation = glGetUniformLocation(m_pProgramId, "u_Color");
+
     UpdateMeshColor(m_pSpecifiedColor);
     if (!m_pIsColorSpecified) // to enable transition on start
         OnIsColorSpecifiedChanged();
@@ -46,6 +48,10 @@ bool MeshRenderer::Init(GLInfo &infoOut) {
 
     UpdateBuffers();
     return true;
+}
+
+void MeshRenderer::Resize(const int w, const int h) const {
+    glUniform1f(m_pAspectRatioUniformLocation, (float) h / (float) w);
 }
 
 void MeshRenderer::Update(const float deltaTime, const bool IsColorSpecifiedChanged, const bool IsColorChanged) {
@@ -130,16 +136,9 @@ bool MeshRenderer::CompileShader(const GLenum shaderType, const std::string_view
     const auto &fileContent = fileBuff.str();
 
 #ifndef __EMSCRIPTEN__
-    const char *shaderSrc[2] = {
-        GLSL_VERSION,
-        fileContent.c_str()
-    };
+    const char *shaderSrc[2] = { GLSL_VERSION, fileContent.c_str() };
 #else
-    const char *shaderSrc[3] = {
-        GLSL_VERSION,
-        "precision highp float;\n",
-        fileContent.c_str()
-    };
+    const char *shaderSrc[3] = { GLSL_VERSION, "precision highp float;\n", fileContent.c_str() };
 #endif
 
     shaderIdOut = glCreateShader(shaderType);

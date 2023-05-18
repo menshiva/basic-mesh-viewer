@@ -9,7 +9,7 @@ static bool OnInit(MeshRenderer *renderer, UI *ui, GLFWwindow *window) {
 }
 
 static void OnResize(MeshRenderer *renderer, UI*, const int w, const int h) {
-    // TODO
+    renderer->Resize(w, h);
 }
 
 static void OnUpdate(MeshRenderer *renderer, UI *ui) {

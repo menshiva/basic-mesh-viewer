@@ -122,9 +122,12 @@ void UI::Draw() {
 }
 
 void UI::Destroy() {
-    ImGui_ImplOpenGL3_Shutdown();
-    ImGui_ImplGlfw_Shutdown();
-    ImGui::DestroyContext();
+    const auto Ctx = ImGui::GetCurrentContext();
+    if (Ctx && Ctx->Initialized) {
+        ImGui_ImplOpenGL3_Shutdown();
+        ImGui_ImplGlfw_Shutdown();
+        ImGui::DestroyContext();
+    }
 }
 
 bool UI::IsColorSpecifiedChanged() {

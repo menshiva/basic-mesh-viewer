@@ -45,6 +45,9 @@ public:
             return 1;
 
     #ifndef __EMSCRIPTEN__
+        int w, h;
+        glfwGetFramebufferSize(m_pWindow, &w, &h);
+        OnWindowResized(w, h);
         while (!glfwWindowShouldClose(m_pWindow))
             Tick();
     #else
