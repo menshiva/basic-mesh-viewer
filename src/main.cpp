@@ -14,7 +14,7 @@ static void OnResize(MeshRenderer *renderer, UI*, const int w, const int h) {
 
 static void OnUpdate(MeshRenderer *renderer, UI *ui) {
     ui->Update(renderer->GetIsColorSpecifiedRef(), renderer->GetSpecifiedColorRef());
-    renderer->Update(ui->m_DeltaTime);
+    renderer->Update(ui->m_DeltaTime, ui->IsColorSpecifiedChanged(), ui->IsColorChanged());
 }
 
 static void OnDraw(MeshRenderer*, UI*) {
@@ -29,16 +29,7 @@ static void OnDestroy(MeshRenderer *renderer, UI*) {
 
 int main() {
     MeshRenderer renderer;
-
     UI ui;
-    ui
-        .WithOnIsColorSpecifiedChangedCallback([&renderer] {
-            renderer.OnIsColorSpecifiedChanged();
-        })
-        .WithOnSpecifiedColorChangedCallback([&renderer] {
-            renderer.OnSpecifiedColorChanged();
-        });
-
     return Presenter<MeshRenderer*, UI*>(&renderer, &ui)
         .WithOnInitCallback(OnInit)
         .WithOnResizeCallback(OnResize)

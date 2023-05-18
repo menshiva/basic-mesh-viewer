@@ -1,5 +1,4 @@
 #include "Ui.hpp"
-#include <cstdio>
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 #include "imgui_internal.h"
@@ -7,6 +6,8 @@
 
 // TODO: make adaptive
 // TODO: better touch gestures on smartphones
+
+UI::UI() : m_DeltaTime(0.0f), m_pIsColorSpecifiedChanged(false), m_pColorChanged(false) {}
 
 bool UI::Init(const GLInfo &glInfo, GLFWwindow *window) {
     m_pInfo = glInfo;
@@ -43,7 +44,7 @@ bool UI::Init(const GLInfo &glInfo, GLFWwindow *window) {
     return true;
 }
 
-void UI::Update(bool &colorSpecified, float *meshColor) {
+void UI::Update(bool &isColorSpecified, float *color) {
     auto &io = ImGui::GetIO();
 
     ImGui_ImplOpenGL3_NewFrame();
@@ -60,11 +61,11 @@ void UI::Update(bool &colorSpecified, float *meshColor) {
         ImGuiCond_Always, ImVec2(1.0f, 0.0f)
     );
 
-    ImGui::Begin("##Main##", nullptr/*, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove*/);
+    ImGui::Begin("##Main##", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
 
     // TODO
     // MeshSection(selectedMeshIdx);
-    ColorSection(colorSpecified, meshColor);
+    ColorSection(isColorSpecified, color);
     InfoAndMetricsSection();
 
     ImGui::End();
@@ -126,31 +127,27 @@ void UI::Destroy() {
     ImGui::DestroyContext();
 }
 
-UI &UI::WithOnIsColorSpecifiedChangedCallback(std::function<void()> &&callback) {
-    m_pOnIsColorSpecifiedChanged = callback;
-    return *this;
+bool UI::IsColorSpecifiedChanged() {
+    const bool ret = m_pIsColorSpecifiedChanged;
+    m_pIsColorSpecifiedChanged = false;
+    return ret;
 }
 
-UI &UI::WithOnSpecifiedColorChangedCallback(std::function<void()> &&callback) {
-    m_pOnSpecifiedColorChanged = callback;
-    return *this;
+bool UI::IsColorChanged() {
+    const bool ret = m_pColorChanged;
+    m_pColorChanged = false;
+    return ret;
 }
 
-void UI::ColorSection(bool &specified, float *meshColor) const {
+void UI::ColorSection(bool &isSpecified, float *color) {
     ImGui::SeparatorText("Color");
-
-    if (ImGui::Checkbox("##Specified##", &specified))
-        m_pOnIsColorSpecifiedChanged();
-
+    m_pIsColorSpecifiedChanged = ImGui::Checkbox("##Specified##", &isSpecified);
     ImGui::SameLine();
-
-    ImGui::BeginDisabled(!specified);
-    if (ImGui::ColorEdit3(
-        "##Mesh Color##", meshColor,
+    ImGui::BeginDisabled(!isSpecified);
+    m_pColorChanged = ImGui::ColorEdit3(
+        "##Mesh Color##", color,
         ImGuiColorEditFlags_InputRGB | ImGuiColorEditFlags_NoAlpha | ImGuiColorEditFlags_DisplayRGB
-    )) {
-        m_pOnSpecifiedColorChanged();
-    }
+    );
     ImGui::EndDisabled();
 }
 

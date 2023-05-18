@@ -1,25 +1,21 @@
 #pragma once
 
-#include <cstdint>
 #include <array>
 #include <memory>
 #include <GL/glew.h>
-#include "mesh/Polygon2D.hpp"
+#include <glm/vec3.hpp>
+#include "mesh/Mesh.hpp"
 #include "GLInfo.hpp"
-#include "../config.hpp"
 
 class MeshRenderer {
 public:
+    MeshRenderer();
+
     bool Init(GLInfo &infoOut);
-    void Update(float deltaTime);
+    void Update(float deltaTime, bool IsColorSpecifiedChanged, bool IsColorChanged);
     static void Draw();
     void Destroy();
 
-    void OnCurrentMeshSettingsChanged() const;
-    void OnIsColorSpecifiedChanged();
-    void OnSpecifiedColorChanged() const { UpdateMeshColor(m_pSpecifiedColor); }
-
-    MeshSettings &GetCurrentMeshSettings() { return m_pCurrentMesh->GetMeshSettingsRef(); }
     bool &GetIsColorSpecifiedRef() { return m_pIsColorSpecified; }
     float *GetSpecifiedColorRef() { return &m_pSpecifiedColor.x; }
 private:
@@ -29,21 +25,26 @@ private:
     static bool CreateProgram(std::string_view path, GLuint &programIdOut);
 
     void UpdateMeshColor(const glm::vec3 &color) const;
+    void UpdateBuffers() const;
 
+#ifndef __EMSCRIPTEN__
 #if !NDEBUG
     static void GLAPIENTRY OnGlError(GLenum, GLenum, GLuint, GLenum severity, GLsizei, const GLchar *msg, const void*);
 #endif
+#endif
 
-    std::unique_ptr<Mesh> m_pCurrentMesh = std::make_unique<Polygon2D>();
-    bool m_pIsColorSpecified = Config::IS_COLOR_SPECIFIED;
-    glm::vec3 m_pSpecifiedColor = Config::MESH_DEFAULT_COLOR;
+    void OnIsColorSpecifiedChanged();
+
+    std::unique_ptr<Mesh> m_pCurrentMesh;
+    bool m_pIsColorSpecified;
+    glm::vec3 m_pSpecifiedColor;
 
     GLuint m_pProgramId;
     GLint m_pColorUniformLocation;
     GLuint m_pVao;
     std::array<GLuint, 2> m_pVboIbo;
 
-    glm::vec3 m_pAnimColorCurrent = m_pSpecifiedColor;
-    glm::vec3 m_pAnimColorTo = m_pSpecifiedColor;
-    float m_pAnimInterpolant = -1.0f;
+    glm::vec3 m_pAnimColorCurrent;
+    glm::vec3 m_pAnimColorTo;
+    float m_pAnimInterpolant;
 };

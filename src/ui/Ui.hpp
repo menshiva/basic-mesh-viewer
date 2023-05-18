@@ -5,19 +5,21 @@
 
 class UI {
 public:
+    UI();
+
     bool Init(const GLInfo &glInfo, struct GLFWwindow *window);
-    void Update(bool &colorSpecified, float *meshColor);
+    void Update(bool &isColorSpecified, float *color);
     static void Draw();
     static void Destroy();
 
-    UI &WithOnIsColorSpecifiedChangedCallback(std::function<void()> &&callback);
-    UI &WithOnSpecifiedColorChangedCallback(std::function<void()> &&callback);
+    bool IsColorSpecifiedChanged();
+    bool IsColorChanged();
 
     float m_DeltaTime;
 private:
-    void ColorSection(bool &specified, float *meshColor) const;
+    void ColorSection(bool &isSpecified, float *color);
     void InfoAndMetricsSection() const;
 
-    std::function<void()> m_pOnIsColorSpecifiedChanged, m_pOnSpecifiedColorChanged;
     GLInfo m_pInfo;
+    bool m_pIsColorSpecifiedChanged, m_pColorChanged;
 };

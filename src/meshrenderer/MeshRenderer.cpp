@@ -1,8 +1,14 @@
 #include "MeshRenderer.hpp"
-#include <memory>
 #include <fstream>
 #include <sstream>
 #include <glm/gtx/color_space.hpp>
+#include "mesh/Polygon2D.hpp"
+#include "../config.hpp"
+
+MeshRenderer::MeshRenderer() : m_pCurrentMesh(new Polygon2D()), m_pIsColorSpecified(Config::IS_COLOR_SPECIFIED),
+                               m_pSpecifiedColor(Config::MESH_DEFAULT_COLOR),
+                               m_pProgramId{}, m_pColorUniformLocation{}, m_pVao{}, m_pVboIbo{},
+                               m_pAnimColorCurrent(m_pSpecifiedColor), m_pAnimColorTo(m_pSpecifiedColor), m_pAnimInterpolant(-1.0f) {}
 
 bool MeshRenderer::Init(GLInfo &infoOut) {
     if (glewInit() != GLEW_OK)
@@ -38,12 +44,16 @@ bool MeshRenderer::Init(GLInfo &infoOut) {
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_pVboIbo[1]);
 
-    // to load vert positions and indices into VRAM
-    OnCurrentMeshSettingsChanged();
+    UpdateBuffers();
     return true;
 }
 
-void MeshRenderer::Update(const float deltaTime) {
+void MeshRenderer::Update(const float deltaTime, const bool IsColorSpecifiedChanged, const bool IsColorChanged) {
+    if (IsColorSpecifiedChanged)
+        OnIsColorSpecifiedChanged();
+    else if (IsColorChanged)
+        UpdateMeshColor(m_pSpecifiedColor);
+
     if (m_pAnimInterpolant != -1.0f) {
         // here m_pAnimColorCurrent and m_pAnimColorTo are in RGB
         m_pAnimInterpolant += deltaTime * 5.0f;
@@ -78,39 +88,9 @@ void MeshRenderer::Draw() {
 }
 
 void MeshRenderer::Destroy() {
-    // TODO
-    if (m_pProgramId) {
-        glDeleteBuffers((GLsizei) m_pVboIbo.size(), m_pVboIbo.data());
-        glDeleteVertexArrays(1, &m_pVao);
-        glDeleteProgram(m_pProgramId);
-    }
-}
-
-void MeshRenderer::OnCurrentMeshSettingsChanged() const {
-    m_pCurrentMesh->OnMeshSettingsChanged();
-
-    const auto &vertPositions = m_pCurrentMesh->GetVertexPositions();
-    const auto &indices = m_pCurrentMesh->GetIndices();
-
-    glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr) vertPositions.size() * 2 * (GLsizeiptr) sizeof(float), vertPositions.data(), GL_STATIC_DRAW);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, (GLsizeiptr) indices.size(), indices.data(), GL_STATIC_DRAW);
-}
-
-void MeshRenderer::OnIsColorSpecifiedChanged() {
-    if (!m_pIsColorSpecified) {
-        m_pAnimColorCurrent = m_pSpecifiedColor;
-        m_pAnimColorTo = glm::hsvColor(m_pSpecifiedColor);
-        if (glm::isnan(m_pAnimColorTo.x))
-            m_pAnimColorTo.x = 0.0f;
-        m_pAnimColorTo.y = m_pAnimColorTo.z = 1.0f;
-        m_pAnimColorTo = glm::rgbColor(m_pAnimColorTo);
-    }
-    else {
-        m_pAnimColorCurrent = glm::rgbColor(m_pAnimColorCurrent);
-        m_pAnimColorTo = m_pSpecifiedColor;
-    }
-
-    m_pAnimInterpolant = 0.0f;
+    glDeleteBuffers((GLsizei) m_pVboIbo.size(), m_pVboIbo.data());
+    glDeleteVertexArrays(1, &m_pVao);
+    glDeleteProgram(m_pProgramId);
 }
 
 bool MeshRenderer::FillGLInfo(GLInfo &infoOut) {
@@ -150,12 +130,12 @@ bool MeshRenderer::CompileShader(const GLenum shaderType, const std::string_view
     const auto &fileContent = fileBuff.str();
 
 #ifndef __EMSCRIPTEN__
-    const char *ShaderSrc[2] = {
+    const char *shaderSrc[2] = {
         GLSL_VERSION,
         fileContent.c_str()
     };
 #else
-    const char *ShaderSrc[3] = {
+    const char *shaderSrc[3] = {
         GLSL_VERSION,
         "precision highp float;\n",
         fileContent.c_str()
@@ -163,7 +143,7 @@ bool MeshRenderer::CompileShader(const GLenum shaderType, const std::string_view
 #endif
 
     shaderIdOut = glCreateShader(shaderType);
-    glShaderSource(shaderIdOut, sizeof(ShaderSrc) / sizeof(ShaderSrc[0]), ShaderSrc, nullptr);
+    glShaderSource(shaderIdOut, sizeof(shaderSrc) / sizeof(shaderSrc[0]), shaderSrc, nullptr);
     glCompileShader(shaderIdOut);
 
     GLint result;
@@ -209,6 +189,14 @@ void MeshRenderer::UpdateMeshColor(const glm::vec3 &color) const {
     glUniform3f(m_pColorUniformLocation, color.r, color.g, color.b);
 }
 
+void MeshRenderer::UpdateBuffers() const {
+    const auto &vertPositions = m_pCurrentMesh->GetVertexPositions();
+    const auto &indices = m_pCurrentMesh->GetIndices();
+    glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr) vertPositions.size() * 2 * (GLsizeiptr) sizeof(float), vertPositions.data(), GL_STATIC_DRAW);
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, (GLsizeiptr) indices.size(), indices.data(), GL_STATIC_DRAW);
+}
+
+#ifndef __EMSCRIPTEN__
 #if !NDEBUG
 void GLAPIENTRY MeshRenderer::OnGlError(
     const GLenum, const GLenum, const GLuint, const GLenum severity,
@@ -221,3 +209,21 @@ void GLAPIENTRY MeshRenderer::OnGlError(
     }
 }
 #endif
+#endif
+
+void MeshRenderer::OnIsColorSpecifiedChanged() {
+    if (!m_pIsColorSpecified) {
+        m_pAnimColorCurrent = m_pSpecifiedColor;
+        m_pAnimColorTo = glm::hsvColor(m_pSpecifiedColor);
+        if (glm::isnan(m_pAnimColorTo.x))
+            m_pAnimColorTo.x = 0.0f;
+        m_pAnimColorTo.y = m_pAnimColorTo.z = 1.0f;
+        m_pAnimColorTo = glm::rgbColor(m_pAnimColorTo);
+    }
+    else {
+        m_pAnimColorCurrent = glm::rgbColor(m_pAnimColorCurrent);
+        m_pAnimColorTo = m_pSpecifiedColor;
+    }
+
+    m_pAnimInterpolant = 0.0f;
+}
