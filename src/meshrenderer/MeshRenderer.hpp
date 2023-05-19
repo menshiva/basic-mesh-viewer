@@ -13,12 +13,17 @@ public:
 
     bool Init(GLInfo &infoOut);
     void Resize(int w, int h) const;
-    void Update(float deltaTime, bool IsSelectedMeshIdxChanged, bool IsColorSpecifiedChanged, bool IsColorChanged);
+    void Update(
+        float deltaTime,
+        bool IsSelectedMeshIdxChanged, bool IsSelectedMeshSettingsChanged,
+        bool IsColorSpecifiedChanged, bool IsColorChanged
+    );
     void Draw() const;
     void Destroy();
 
     int &GetSelectedMeshIdxRef() { return m_pNewSelectedMeshIdx; }
     std::vector<const char*> GetMeshesNames() const;
+    MeshSettings *GetCurrentMeshSettings() const { return m_pMeshes[m_pSelectedMeshIdx]->GetSettingsPtr(); }
     bool &GetIsColorSpecifiedRef() { return m_pIsColorSpecified; }
     float *GetSpecifiedColorRef() { return &m_pSpecifiedColor.x; }
 private:
@@ -37,6 +42,7 @@ private:
 #endif
 
     void OnSelectedMeshIdxChanged();
+    void OnSelectedMeshSettingsChanged();
     void OnIsColorSpecifiedChanged();
 
     int m_pSelectedMeshIdx;

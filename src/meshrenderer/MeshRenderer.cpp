@@ -66,10 +66,13 @@ void MeshRenderer::Resize(const int w, const int h) const {
 
 void MeshRenderer::Update(
     const float deltaTime,
-    const bool IsSelectedMeshIdxChanged, const bool IsColorSpecifiedChanged, const bool IsColorChanged
+    const bool IsSelectedMeshIdxChanged, const bool IsSelectedMeshSettingsChanged,
+    const bool IsColorSpecifiedChanged, const bool IsColorChanged
 ) {
     if (IsSelectedMeshIdxChanged)
         OnSelectedMeshIdxChanged();
+    else if (IsSelectedMeshSettingsChanged)
+        OnSelectedMeshSettingsChanged();
     else if (IsColorSpecifiedChanged)
         OnIsColorSpecifiedChanged();
     else if (IsColorChanged)
@@ -244,6 +247,11 @@ void MeshRenderer::OnSelectedMeshIdxChanged() {
         m_pMeshes[m_pSelectedMeshIdx]->Init();
         UpdateBuffers();
     }
+}
+
+void MeshRenderer::OnSelectedMeshSettingsChanged() {
+    if (m_pMeshes[m_pSelectedMeshIdx]->Update())
+        UpdateBuffers();
 }
 
 void MeshRenderer::OnIsColorSpecifiedChanged() {

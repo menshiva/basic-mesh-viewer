@@ -15,7 +15,7 @@ public:
     const std::vector<uint8_t> &GetIndices() const { return m_pIndices; }
 
     virtual void Init() {}
-    virtual void Update() {}
+    virtual bool Update() { return false; }
 
     void Destroy() {
         m_pVertexPositions.clear();

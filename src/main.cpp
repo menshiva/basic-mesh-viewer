@@ -16,12 +16,14 @@ static void OnUpdate(MeshRenderer *renderer, UI *ui) {
     ui->Update(
         renderer->GetSelectedMeshIdxRef(),
         renderer->GetMeshesNames(),
+        renderer->GetCurrentMeshSettings(),
         renderer->GetIsColorSpecifiedRef(),
         renderer->GetSpecifiedColorRef()
     );
     renderer->Update(
         ui->m_DeltaTime,
         ui->IsSelectedMeshIdxChanged(),
+        ui->AreSelectedMeshSettingsChanged(),
         ui->IsColorSpecifiedChanged(),
         ui->IsColorChanged()
     );

@@ -8,7 +8,9 @@
 // TODO: make adaptive
 // TODO: better touch gestures on smartphones
 
-UI::UI() : m_DeltaTime(0.0f), m_pIsSelectedMeshIdxChanged(false), m_pIsColorSpecifiedChanged(false), m_pColorChanged(false) {}
+UI::UI() : m_DeltaTime(0.0f),
+           m_pIsSelectedMeshIdxChanged(false), m_pAreSelectedMeshSettingsChanged(false),
+           m_pIsColorSpecifiedChanged(false), m_pColorChanged(false) {}
 
 bool UI::Init(const GLInfo &glInfo, GLFWwindow *window) {
     m_pInfo = glInfo;
@@ -45,7 +47,11 @@ bool UI::Init(const GLInfo &glInfo, GLFWwindow *window) {
     return true;
 }
 
-void UI::Update(int &selectedMeshIdx, const std::vector<const char*> &meshNames, bool &isColorSpecified, float *color) {
+void UI::Update(
+    int &selectedMeshIdx, const std::vector<const char*> &meshNames,
+    MeshSettings *meshSettings,
+    bool &isColorSpecified, float *color
+) {
     auto &io = ImGui::GetIO();
 
     ImGui_ImplOpenGL3_NewFrame();
@@ -54,7 +60,7 @@ void UI::Update(int &selectedMeshIdx, const std::vector<const char*> &meshNames,
 
     // TODO
     // hard-coded for now
-    ImGui::SetNextWindowSize(ImVec2(389.0f, 236.0f), ImGuiCond_Once);
+    ImGui::SetNextWindowSize(ImVec2(390.0f, 283.0f), ImGuiCond_Once);
 
     const auto &viewport = ImGui::GetMainViewport();
     ImGui::SetNextWindowPos(
@@ -64,8 +70,10 @@ void UI::Update(int &selectedMeshIdx, const std::vector<const char*> &meshNames,
 
     ImGui::Begin("##Main##", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
     TypeSection(selectedMeshIdx, meshNames);
-    SettingsSection();
-    ColorSection(isColorSpecified, color);
+    if (meshSettings) {
+        SettingsSection(meshSettings);
+        ColorSection(isColorSpecified, color);
+    }
     InfoAndMetricsSection();
     ImGui::End();
 
@@ -92,8 +100,16 @@ void UI::TypeSection(int &selectedMeshIdx, const std::vector<const char*> &meshN
     m_pIsSelectedMeshIdxChanged = ImGui::Combo("##Type##", &selectedMeshIdx, meshNames.data(), (int) meshNames.size());
 }
 
-void UI::SettingsSection() {
-
+void UI::SettingsSection(MeshSettings *meshSettings) {
+    ImGui::SeparatorText("Settings");
+    if (auto poly2DSettings = dynamic_cast<Polygon2DSettings*>(meshSettings)) {
+        m_pAreSelectedMeshSettingsChanged = ImGui::SliderInt(
+            "##Vertices##", &poly2DSettings->m_VerticesNum,
+            Config::MESH_SETTINGS_POLY2D_VERTICES_MIN, Config::MESH_SETTINGS_POLY2D_VERTICES_MAX,
+            "Vertices: %d",
+            ImGuiSliderFlags_NoInput
+        );
+    }
 }
 
 void UI::ColorSection(bool &isSpecified, float *color) {
