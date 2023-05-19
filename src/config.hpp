@@ -15,10 +15,13 @@ namespace Config {
     constexpr static inline int         WIN_DEFAULT_HEIGHT = 720;
     constexpr static inline const char *WIN_TITLE = "Basic Mesh Viewer";
     constexpr static inline bool        WIN_DEFAULT_MAXIMIZED = true;
-
     constexpr static inline glm::vec3   BACKGROUND_COLOR = glm::vec3(0.07f);
+
+    constexpr static inline int         SELECTED_MESH_IDX = 1;
     constexpr static inline bool        IS_COLOR_SPECIFIED = false;
     constexpr static inline glm::vec3   MESH_DEFAULT_COLOR = glm::vec3(1.0f);
+
+    constexpr static uint8_t            MESH_SETTINGS_POLY2D_VERTICES = 3;
 
     constexpr static inline const char *SHADER_PATH = "res/Basic";
 }

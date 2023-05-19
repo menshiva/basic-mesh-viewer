@@ -13,12 +13,22 @@ static void OnResize(MeshRenderer *renderer, UI*, const int w, const int h) {
 }
 
 static void OnUpdate(MeshRenderer *renderer, UI *ui) {
-    ui->Update(renderer->GetIsColorSpecifiedRef(), renderer->GetSpecifiedColorRef());
-    renderer->Update(ui->m_DeltaTime, ui->IsColorSpecifiedChanged(), ui->IsColorChanged());
+    ui->Update(
+        renderer->GetSelectedMeshIdxRef(),
+        renderer->GetMeshesNames(),
+        renderer->GetIsColorSpecifiedRef(),
+        renderer->GetSpecifiedColorRef()
+    );
+    renderer->Update(
+        ui->m_DeltaTime,
+        ui->IsSelectedMeshIdxChanged(),
+        ui->IsColorSpecifiedChanged(),
+        ui->IsColorChanged()
+    );
 }
 
-static void OnDraw(MeshRenderer*, UI*) {
-    MeshRenderer::Draw();
+static void OnDraw(MeshRenderer *renderer, UI*) {
+    renderer->Draw();
     UI::Draw();
 }
 

@@ -1,4 +1,5 @@
 #include "Ui.hpp"
+#include <vector>
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 #include "imgui_internal.h"
@@ -7,7 +8,7 @@
 // TODO: make adaptive
 // TODO: better touch gestures on smartphones
 
-UI::UI() : m_DeltaTime(0.0f), m_pIsColorSpecifiedChanged(false), m_pColorChanged(false) {}
+UI::UI() : m_DeltaTime(0.0f), m_pIsSelectedMeshIdxChanged(false), m_pIsColorSpecifiedChanged(false), m_pColorChanged(false) {}
 
 bool UI::Init(const GLInfo &glInfo, GLFWwindow *window) {
     m_pInfo = glInfo;
@@ -44,7 +45,7 @@ bool UI::Init(const GLInfo &glInfo, GLFWwindow *window) {
     return true;
 }
 
-void UI::Update(bool &isColorSpecified, float *color) {
+void UI::Update(int &selectedMeshIdx, const std::vector<const char*> &meshNames, bool &isColorSpecified, float *color) {
     auto &io = ImGui::GetIO();
 
     ImGui_ImplOpenGL3_NewFrame();
@@ -53,7 +54,7 @@ void UI::Update(bool &isColorSpecified, float *color) {
 
     // TODO
     // hard-coded for now
-    ImGui::SetNextWindowSize(ImVec2(382.0f, 190.0f), ImGuiCond_Once);
+    ImGui::SetNextWindowSize(ImVec2(389.0f, 236.0f), ImGuiCond_Once);
 
     const auto &viewport = ImGui::GetMainViewport();
     ImGui::SetNextWindowPos(
@@ -62,57 +63,13 @@ void UI::Update(bool &isColorSpecified, float *color) {
     );
 
     ImGui::Begin("##Main##", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
-
-    // TODO
-    // MeshSection(selectedMeshIdx);
+    TypeSection(selectedMeshIdx, meshNames);
+    SettingsSection();
     ColorSection(isColorSpecified, color);
     InfoAndMetricsSection();
-
     ImGui::End();
 
     m_DeltaTime = io.DeltaTime;
-
-    // TODO
-    /*static bool showDemoWindow = true;
-    static bool showAnotherWindow = false;
-
-    // 1. Show the big demo window (Most of the sample code is in ImGui::ShowDemoWindow()! You can browse its code to learn more about Dear ImGui!).
-    if (showDemoWindow)
-        ImGui::ShowDemoWindow(&showDemoWindow);
-
-    // 2. Show a simple window that we create ourselves. We use a Begin/End pair to create a named window.
-    {
-        static float f = 0.0f;
-        static int counter = 0;
-        static auto editColor = meshColor;
-
-        ImGui::Begin("Hello, world!"); // Create a window called "Hello, world!" and append into it.
-
-        ImGui::Text("This is some useful text."); // Display some text (you can use a format strings too)
-        ImGui::Checkbox("Demo Window", &showDemoWindow); // Edit bools storing our window open/close state
-        ImGui::Checkbox("Another Window", &showAnotherWindow);
-
-        ImGui::SliderFloat("float", &f, 0.0f, 1.0f); // Edit 1 float using a slider from 0.0f to 1.0f
-        ImGui::ColorEdit3("clear color", (float*) &editColor); // Edit 3 floats representing a color
-
-        if (ImGui::Button("Button")) // Buttons return true when clicked (most widgets return true when edited/activated)
-            ++counter;
-        ImGui::SameLine();
-        ImGui::Text("counter = %d", counter);
-
-        ImGui::Text("Application average %.3f ms/frame (%.1f FPS)", 1000.0f / io.Framerate, io.Framerate);
-        ImGui::End();
-    }
-
-    // 3. Show another simple window.
-    if (showAnotherWindow) {
-        ImGui::Begin("Another Window", &showAnotherWindow); // Pass a pointer to our bool variable (the window will have a closing button that will clear the bool when clicked)
-        ImGui::Text("Hello from another window!");
-        if (ImGui::Button("Close Me"))
-            showAnotherWindow = false;
-        ImGui::End();
-    }*/
-
     ImGui::EndFrame();
 }
 
@@ -130,16 +87,13 @@ void UI::Destroy() {
     }
 }
 
-bool UI::IsColorSpecifiedChanged() {
-    const bool ret = m_pIsColorSpecifiedChanged;
-    m_pIsColorSpecifiedChanged = false;
-    return ret;
+void UI::TypeSection(int &selectedMeshIdx, const std::vector<const char*> &meshNames) {
+    ImGui::SeparatorText("Type");
+    m_pIsSelectedMeshIdxChanged = ImGui::Combo("##Type##", &selectedMeshIdx, meshNames.data(), (int) meshNames.size());
 }
 
-bool UI::IsColorChanged() {
-    const bool ret = m_pColorChanged;
-    m_pColorChanged = false;
-    return ret;
+void UI::SettingsSection() {
+
 }
 
 void UI::ColorSection(bool &isSpecified, float *color) {
@@ -169,4 +123,10 @@ void UI::InfoAndMetricsSection() const {
     // if (metricsOffset > 0.0f)
     //     ImGui::SetCursorPosX(ImGui::GetCursorPosX() + metricsOffset);
     ImGui::Text("Performance: %.1f FPS", ImGui::GetIO().Framerate);
+}
+
+bool UI::GetPropertyAndReset(bool &property) {
+    const bool ret = property;
+    property = false;
+    return ret;
 }

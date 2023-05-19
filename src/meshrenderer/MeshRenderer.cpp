@@ -5,10 +5,16 @@
 #include "mesh/Polygon2D.hpp"
 #include "../config.hpp"
 
-MeshRenderer::MeshRenderer() : m_pCurrentMesh(new Polygon2D()), m_pIsColorSpecified(Config::IS_COLOR_SPECIFIED),
+MeshRenderer::MeshRenderer() : m_pSelectedMeshIdx(Config::SELECTED_MESH_IDX),
+                               m_pIsColorSpecified(Config::IS_COLOR_SPECIFIED),
                                m_pSpecifiedColor(Config::MESH_DEFAULT_COLOR),
+                               m_pMeshes({
+                                    std::make_unique<Mesh>(),
+                                    std::make_unique<Polygon2D>()
+                               }),
                                m_pProgramId{}, m_pAspectRatioUniformLocation{}, m_pColorUniformLocation{}, m_pVao{}, m_pVboIbo{},
-                               m_pAnimColorCurrent(m_pSpecifiedColor), m_pAnimColorTo(m_pSpecifiedColor), m_pAnimInterpolant(-1.0f) {}
+                               m_pNewSelectedMeshIdx(m_pSelectedMeshIdx), m_pAnimColorCurrent(m_pSpecifiedColor),
+                               m_pAnimColorTo(m_pSpecifiedColor), m_pAnimInterpolant(-1.0f) {}
 
 bool MeshRenderer::Init(GLInfo &infoOut) {
     if (glewInit() != GLEW_OK)
@@ -41,12 +47,16 @@ bool MeshRenderer::Init(GLInfo &infoOut) {
 
     glBindBuffer(GL_ARRAY_BUFFER, m_pVboIbo[0]);
 
-    glEnableVertexAttribArray(0);
-    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 2 * sizeof(float), nullptr);
+    const auto positionAttribLocation = glGetAttribLocation(m_pProgramId, "position");
+    glEnableVertexAttribArray(positionAttribLocation);
+    glVertexAttribPointer(positionAttribLocation, 2, GL_FLOAT, GL_FALSE, sizeof(glm::vec2), nullptr);
 
     glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, m_pVboIbo[1]);
 
+    const auto &currentMesh = m_pMeshes[m_pSelectedMeshIdx];
+    currentMesh->Init();
     UpdateBuffers();
+
     return true;
 }
 
@@ -54,8 +64,13 @@ void MeshRenderer::Resize(const int w, const int h) const {
     glUniform1f(m_pAspectRatioUniformLocation, (float) h / (float) w);
 }
 
-void MeshRenderer::Update(const float deltaTime, const bool IsColorSpecifiedChanged, const bool IsColorChanged) {
-    if (IsColorSpecifiedChanged)
+void MeshRenderer::Update(
+    const float deltaTime,
+    const bool IsSelectedMeshIdxChanged, const bool IsColorSpecifiedChanged, const bool IsColorChanged
+) {
+    if (IsSelectedMeshIdxChanged)
+        OnSelectedMeshIdxChanged();
+    else if (IsColorSpecifiedChanged)
         OnIsColorSpecifiedChanged();
     else if (IsColorChanged)
         UpdateMeshColor(m_pSpecifiedColor);
@@ -89,14 +104,25 @@ void MeshRenderer::Update(const float deltaTime, const bool IsColorSpecifiedChan
     }
 }
 
-void MeshRenderer::Draw() {
-    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_BYTE, nullptr);
+void MeshRenderer::Draw() const {
+    const auto &currentMesh = m_pMeshes[m_pSelectedMeshIdx];
+    const auto &indices = currentMesh->GetIndices();
+    if (!indices.empty())
+        glDrawElements(GL_TRIANGLES, (GLsizei) indices.size(), GL_UNSIGNED_BYTE, nullptr);
 }
 
 void MeshRenderer::Destroy() {
     glDeleteBuffers((GLsizei) m_pVboIbo.size(), m_pVboIbo.data());
     glDeleteVertexArrays(1, &m_pVao);
     glDeleteProgram(m_pProgramId);
+}
+
+std::vector<const char*> MeshRenderer::GetMeshesNames() const {
+    std::vector<const char*> out;
+    out.reserve(m_pMeshes.size());
+    for (const auto &mesh : m_pMeshes)
+        out.push_back(mesh->GetName().data());
+    return out;
 }
 
 bool MeshRenderer::FillGLInfo(GLInfo &infoOut) {
@@ -189,10 +215,11 @@ void MeshRenderer::UpdateMeshColor(const glm::vec3 &color) const {
 }
 
 void MeshRenderer::UpdateBuffers() const {
-    const auto &vertPositions = m_pCurrentMesh->GetVertexPositions();
-    const auto &indices = m_pCurrentMesh->GetIndices();
-    glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr) vertPositions.size() * 2 * (GLsizeiptr) sizeof(float), vertPositions.data(), GL_STATIC_DRAW);
-    glBufferData(GL_ELEMENT_ARRAY_BUFFER, (GLsizeiptr) indices.size(), indices.data(), GL_STATIC_DRAW);
+    const auto &currentMesh = m_pMeshes[m_pSelectedMeshIdx];
+    const auto &vertPositions = currentMesh->GetVertexPositions();
+    const auto &indices = currentMesh->GetIndices();
+    glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr) vertPositions.size() * (GLsizeiptr) sizeof(glm::vec2), vertPositions.data(), GL_STATIC_DRAW);
+    glBufferData( GL_ELEMENT_ARRAY_BUFFER, (GLsizeiptr) indices.size() * (GLsizeiptr) sizeof(uint8_t), indices.data(), GL_STATIC_DRAW);
 }
 
 #ifndef __EMSCRIPTEN__
@@ -209,6 +236,15 @@ void GLAPIENTRY MeshRenderer::OnGlError(
 }
 #endif
 #endif
+
+void MeshRenderer::OnSelectedMeshIdxChanged() {
+    if (m_pSelectedMeshIdx != m_pNewSelectedMeshIdx) {
+        m_pMeshes[m_pSelectedMeshIdx]->Destroy();
+        m_pSelectedMeshIdx = m_pNewSelectedMeshIdx;
+        m_pMeshes[m_pSelectedMeshIdx]->Init();
+        UpdateBuffers();
+    }
+}
 
 void MeshRenderer::OnIsColorSpecifiedChanged() {
     if (!m_pIsColorSpecified) {

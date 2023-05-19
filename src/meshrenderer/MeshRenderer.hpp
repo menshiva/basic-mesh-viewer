@@ -13,10 +13,12 @@ public:
 
     bool Init(GLInfo &infoOut);
     void Resize(int w, int h) const;
-    void Update(float deltaTime, bool IsColorSpecifiedChanged, bool IsColorChanged);
-    static void Draw();
+    void Update(float deltaTime, bool IsSelectedMeshIdxChanged, bool IsColorSpecifiedChanged, bool IsColorChanged);
+    void Draw() const;
     void Destroy();
 
+    int &GetSelectedMeshIdxRef() { return m_pNewSelectedMeshIdx; }
+    std::vector<const char*> GetMeshesNames() const;
     bool &GetIsColorSpecifiedRef() { return m_pIsColorSpecified; }
     float *GetSpecifiedColorRef() { return &m_pSpecifiedColor.x; }
 private:
@@ -34,17 +36,21 @@ private:
 #endif
 #endif
 
+    void OnSelectedMeshIdxChanged();
     void OnIsColorSpecifiedChanged();
 
-    std::unique_ptr<Mesh> m_pCurrentMesh;
+    int m_pSelectedMeshIdx;
     bool m_pIsColorSpecified;
     glm::vec3 m_pSpecifiedColor;
+
+    std::array<std::unique_ptr<Mesh>, 2> m_pMeshes;
 
     GLuint m_pProgramId;
     GLint m_pAspectRatioUniformLocation, m_pColorUniformLocation;
     GLuint m_pVao;
     std::array<GLuint, 2> m_pVboIbo;
 
+    int m_pNewSelectedMeshIdx;
     glm::vec3 m_pAnimColorCurrent;
     glm::vec3 m_pAnimColorTo;
     float m_pAnimInterpolant;
