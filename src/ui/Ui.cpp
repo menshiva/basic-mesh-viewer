@@ -101,7 +101,7 @@ void UI::TypeSection(int &selectedMeshIdx, const std::vector<const char*> &meshN
 }
 
 void UI::SettingsSection(MeshSettings *meshSettings) {
-    ImGui::SeparatorText("Settings");
+    ImGui::SeparatorText("Parameters");
     if (auto poly2DSettings = dynamic_cast<Polygon2DSettings*>(meshSettings)) {
         m_pAreSelectedMeshSettingsChanged = ImGui::SliderInt(
             "##Vertices##", &poly2DSettings->m_VerticesNum,

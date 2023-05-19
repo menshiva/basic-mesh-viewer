@@ -2,6 +2,7 @@
 
 #include <string>
 #include <vector>
+#include <glm/common.hpp>
 #include <glm/vec2.hpp>
 #include "MeshSettings.hpp"
 
@@ -20,6 +21,18 @@ public:
     void Destroy() {
         m_pVertexPositions.clear();
         m_pIndices.clear();
+    }
+
+    glm::vec2 GetCenterOffset() const {
+        glm::vec2 min(0.0f), max(0.0f);
+        if (!m_pVertexPositions.empty()) {
+            min = max = m_pVertexPositions[0];
+            for (uint32_t i = 1; i < m_pVertexPositions.size(); ++i) {
+                min = glm::min(min, m_pVertexPositions[i]);
+                max = glm::max(max, m_pVertexPositions[i]);
+            }
+        }
+        return glm::vec2(0.0f) - (min + max) / 2.0f;
     }
 
     virtual MeshSettings *GetSettingsPtr() { return nullptr; }

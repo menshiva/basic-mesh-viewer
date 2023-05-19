@@ -21,7 +21,7 @@ namespace Config {
     constexpr static inline bool        IS_COLOR_SPECIFIED = false;
     constexpr static inline glm::vec3   MESH_DEFAULT_COLOR = glm::vec3(1.0f);
 
-    constexpr static int                MESH_SETTINGS_POLY2D_VERTICES = 3;
+    constexpr static int                MESH_SETTINGS_POLY2D_VERTICES_DEFAULT = 3;
     constexpr static int                MESH_SETTINGS_POLY2D_VERTICES_MIN = 3;
     constexpr static int                MESH_SETTINGS_POLY2D_VERTICES_MAX = 30;
 

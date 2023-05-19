@@ -52,7 +52,7 @@ private:
     std::array<std::unique_ptr<Mesh>, 2> m_pMeshes;
 
     GLuint m_pProgramId;
-    GLint m_pAspectRatioUniformLocation, m_pColorUniformLocation;
+    GLint m_pAspectRatioUniformLocation, m_pCenterOffsetUniformLocation, m_pColorUniformLocation;
     GLuint m_pVao;
     std::array<GLuint, 2> m_pVboIbo;
 

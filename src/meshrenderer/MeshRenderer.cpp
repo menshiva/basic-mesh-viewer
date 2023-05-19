@@ -12,7 +12,8 @@ MeshRenderer::MeshRenderer() : m_pSelectedMeshIdx(Config::SELECTED_MESH_IDX),
                                     std::make_unique<Mesh>(),
                                     std::make_unique<Polygon2D>()
                                }),
-                               m_pProgramId{}, m_pAspectRatioUniformLocation{}, m_pColorUniformLocation{}, m_pVao{}, m_pVboIbo{},
+                               m_pProgramId{}, m_pAspectRatioUniformLocation{}, m_pCenterOffsetUniformLocation{},
+                               m_pColorUniformLocation{}, m_pVao{}, m_pVboIbo{},
                                m_pNewSelectedMeshIdx(m_pSelectedMeshIdx), m_pAnimColorCurrent(m_pSpecifiedColor),
                                m_pAnimColorTo(m_pSpecifiedColor), m_pAnimInterpolant(-1.0f) {}
 
@@ -34,6 +35,7 @@ bool MeshRenderer::Init(GLInfo &infoOut) {
     glUseProgram(m_pProgramId);
 
     m_pAspectRatioUniformLocation = glGetUniformLocation(m_pProgramId, "u_AspectRatio");
+    m_pCenterOffsetUniformLocation = glGetUniformLocation(m_pProgramId, "u_CenterOffset");
     m_pColorUniformLocation = glGetUniformLocation(m_pProgramId, "u_Color");
 
     UpdateMeshColor(m_pSpecifiedColor);
@@ -219,10 +221,15 @@ void MeshRenderer::UpdateMeshColor(const glm::vec3 &color) const {
 
 void MeshRenderer::UpdateBuffers() const {
     const auto &currentMesh = m_pMeshes[m_pSelectedMeshIdx];
+
+    const auto centerOffset = currentMesh->GetCenterOffset();
+    glUniform2f(m_pCenterOffsetUniformLocation, centerOffset.x, centerOffset.y);
+
     const auto &vertPositions = currentMesh->GetVertexPositions();
-    const auto &indices = currentMesh->GetIndices();
     glBufferData(GL_ARRAY_BUFFER, (GLsizeiptr) vertPositions.size() * (GLsizeiptr) sizeof(glm::vec2), vertPositions.data(), GL_STATIC_DRAW);
-    glBufferData( GL_ELEMENT_ARRAY_BUFFER, (GLsizeiptr) indices.size() * (GLsizeiptr) sizeof(uint8_t), indices.data(), GL_STATIC_DRAW);
+
+    const auto &indices = currentMesh->GetIndices();
+    glBufferData(GL_ELEMENT_ARRAY_BUFFER, (GLsizeiptr) indices.size() * (GLsizeiptr) sizeof(uint8_t), indices.data(), GL_STATIC_DRAW);
 }
 
 #ifndef __EMSCRIPTEN__
