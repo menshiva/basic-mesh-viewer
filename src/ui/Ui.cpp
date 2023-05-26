@@ -103,7 +103,7 @@ float UI::TypeSection(const std::vector<std::string_view> &meshesNames, int &sel
     ImFormatStringToTempBuffer(&previewStr, &previewStrEnd, "Type: %s", meshesNames[selectedMeshIdx].data());
 
     if (ImGui::BeginCombo("##Type##", previewStr)) {
-        for (int i = 0; i < meshesNames.size(); ++i) {
+        for (int i = 0; i < (int) meshesNames.size(); ++i) {
             const bool isSelected = (i == selectedMeshIdx);
             if (ImGui::Selectable(meshesNames[i].data(), isSelected))
                 selectedMeshIdx = i;
@@ -137,8 +137,8 @@ float UI::ColorSection(UpdateParams::ColorType &colorType, glm::vec3 &specifiedC
         }
     };
     constexpr static float colorEdit4WidthPadding = 43.0f;
-    static auto prevColorType = UpdateParams::ColorType::NUM;
 
+    auto prevColorType = colorType;
     if (prevColorType != UpdateParams::ColorType::SPECIFIED)
         ImGui::PushItemWidth(-FLT_MIN);
     else
@@ -184,8 +184,8 @@ float UI::ColorSection(UpdateParams::ColorType &colorType, glm::vec3 &specifiedC
                 hsv.x, hsv.y, hsv.z
             );
             hsv.x += ImGui::GetIO().DeltaTime * 0.5f;
-            if (hsv.x > 360.0f)
-                hsv.x -= 360.0f;
+            if (hsv.x > 1.0f)
+                hsv.x -= 1.0f;
             ImGui::ColorConvertHSVtoRGB(
                 hsv.x, hsv.y, hsv.z,
                 overrideColor.r, overrideColor.g, overrideColor.b
@@ -194,8 +194,6 @@ float UI::ColorSection(UpdateParams::ColorType &colorType, glm::vec3 &specifiedC
         else
             overrideColor = glm::vec3(1.0f, 0.0f, 0.0f);
     }
-
-    prevColorType = colorType;
 
     const static float colorSize = ImGui::CalcTextSize("Color: ").x;
     float maxBodySize = 0.0f;

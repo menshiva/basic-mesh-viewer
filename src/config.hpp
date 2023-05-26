@@ -14,7 +14,7 @@ namespace Config {
     constexpr inline int         WIN_WIDTH_DEFAULT = 1280;
     constexpr inline int         WIN_HEIGHT_DEFAULT = 720;
     constexpr inline const char *WIN_TITLE = "Basic Mesh Viewer";
-    constexpr inline bool        WIN_MAXIMIZED_DEFAULT = false;
+    constexpr inline bool        WIN_MAXIMIZED_DEFAULT = true;
     constexpr inline glm::vec3   BACKGROUND_COLOR = glm::vec3(0.07f);
 
     constexpr inline int         SELECTED_MESH_IDX_DEFAULT = 0;

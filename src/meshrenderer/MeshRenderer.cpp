@@ -3,6 +3,7 @@
 #include <sstream>
 #include <GL/glew.h>
 #include "mesh/triangle/Triangle.hpp"
+#include "mesh/square/Square.hpp"
 #include "mesh/polygon2d/Polygon2D.hpp"
 
 bool MeshRenderer::Init(GLInfo &infoOut) {
@@ -89,6 +90,7 @@ void MeshRenderer::CreateMeshes() {
     };
 
     CreateMesh.operator()<Triangle>();
+    CreateMesh.operator()<Square>();
     CreateMesh.operator()<Polygon2D>();
 }
 

@@ -1,9 +1,8 @@
 #pragma once
 
-#include "../Mesh.hpp"
-#include "../MeshSettings.hpp"
+#include "../SimpleMesh.hpp"
 
-class Triangle final : public Mesh {
+class Triangle final : public SimpleMesh {
 public:
     static const char *GetName() { return "Triangle"; }
 
@@ -16,15 +15,4 @@ public:
         m_pCenter = glm::vec2(0.0f, 0.25f);
         m_pTriangles = { Mesh::Triangle{0, 1, 2} };
     }
-
-    bool Update(struct MeshSettings *newSettings) override {
-        m_pSettings = *newSettings;
-        return false; // no need to update buffers
-    }
-
-    MeshSettings *GetSettingsCopy() override {
-        return new MeshSettings(m_pSettings);
-    }
-private:
-    MeshSettings m_pSettings;
 };

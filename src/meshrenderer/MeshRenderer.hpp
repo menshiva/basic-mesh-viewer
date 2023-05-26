@@ -37,7 +37,8 @@ private:
     UpdateParams m_pParams{
         Config::SELECTED_MESH_IDX_DEFAULT,
         Config::MESH_SETTINGS_SCALE_DEFAULT,
-        (UpdateParams::ColorType) Config::MESH_SETTINGS_COLOR_TYPE_DEFAULT
+        (UpdateParams::ColorType) Config::MESH_SETTINGS_COLOR_TYPE_DEFAULT,
+        glm::vec3(1.0f, 0.0f, 0.0f)
     };
     DrawInfo m_pDrawInfo;
 
