@@ -134,7 +134,7 @@ void MeshRenderer::UpdateBuffers() {
     const auto &triangles = mesh->GetTriangles();
     glBufferData(GL_ELEMENT_ARRAY_BUFFER, (GLsizeiptr) triangles.size() * (GLsizeiptr) sizeof(Mesh::Triangle), triangles.data(), GL_STATIC_DRAW);
 
-    m_pDrawInfo = DrawInfo(vertices.size(), triangles.size());
+    m_pDrawInfo = DrawInfo{vertices.size(), triangles.size()};
 }
 
 bool MeshRenderer::FillGLInfo(GLInfo &infoOut) {
