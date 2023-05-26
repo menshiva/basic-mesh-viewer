@@ -1,63 +1,48 @@
 #pragma once
 
-#include <array>
 #include <memory>
-#include <GL/glew.h>
-#include <glm/vec3.hpp>
 #include "mesh/Mesh.hpp"
-#include "GLInfo.hpp"
+#include "mesh/MeshSettings.hpp"
+#include "MeshRendererUiData.hpp"
+#include "../config.hpp"
 
 class MeshRenderer {
 public:
-    MeshRenderer();
-
     bool Init(GLInfo &infoOut);
     void Resize(int w, int h) const;
-    void Update(
-        float deltaTime,
-        bool IsSelectedMeshIdxChanged, bool IsSelectedMeshSettingsChanged,
-        bool IsColorSpecifiedChanged, bool IsColorChanged
-    );
+    void Update(const UpdateParams &NewParams, MeshSettings *NewMeshSettings);
     void Draw() const;
     void Destroy();
 
-    int &GetSelectedMeshIdxRef() { return m_pNewSelectedMeshIdx; }
-    std::vector<const char*> GetMeshesNames() const;
-    MeshSettings *GetCurrentMeshSettings() const { return m_pMeshes[m_pSelectedMeshIdx]->GetSettingsPtr(); }
-    bool &GetIsColorSpecifiedRef() { return m_pIsColorSpecified; }
-    float *GetSpecifiedColorRef() { return &m_pSpecifiedColor.x; }
+    const std::vector<std::string_view> &GetMeshesNames() const { return m_pMeshesNames; }
+    UpdateParams GetParamsCopy() const { return m_pParams; }
+    MeshSettings *GetMeshSettingsCopy() const { return GetSelectedMesh()->GetSettingsCopy(); }
+    DrawInfo GetDrawInfo() const { return m_pDrawInfo; }
 private:
+    Mesh *GetSelectedMesh() const { return m_pMeshes[m_pParams.m_SelectedMeshIdx].get(); }
+
+    void CreateMeshes();
+    static void EnableVertexAttribPointers();
+
+    void UpdateUniformsIfNeeded(const UpdateParams &NewParams, bool force = false);
+    void UpdateBuffers();
+
     static bool FillGLInfo(GLInfo &infoOut);
+    static bool CreateProgram(std::string_view path, uint32_t &programIdOut);
+    static bool CompileShader(uint32_t shaderType, std::string_view path, uint32_t &shaderIdOut);
 
-    static bool CompileShader(GLenum shaderType, std::string_view path, GLuint &shaderIdOut);
-    static bool CreateProgram(std::string_view path, GLuint &programIdOut);
+    std::vector<std::string_view> m_pMeshesNames;
+    std::vector<std::unique_ptr<Mesh>> m_pMeshes;
 
-    void UpdateMeshColor(const glm::vec3 &color) const;
-    void UpdateBuffers() const;
+    UpdateParams m_pParams{
+        Config::SELECTED_MESH_IDX_DEFAULT,
+        Config::MESH_SETTINGS_SCALE_DEFAULT,
+        (UpdateParams::ColorType) Config::MESH_SETTINGS_COLOR_TYPE_DEFAULT
+    };
+    DrawInfo m_pDrawInfo;
 
-#ifndef __EMSCRIPTEN__
-#if !NDEBUG
-    static void GLAPIENTRY OnGlError(GLenum, GLenum, GLuint, GLenum severity, GLsizei, const GLchar *msg, const void*);
-#endif
-#endif
-
-    void OnSelectedMeshIdxChanged();
-    void OnSelectedMeshSettingsChanged();
-    void OnIsColorSpecifiedChanged();
-
-    int m_pSelectedMeshIdx;
-    bool m_pIsColorSpecified;
-    glm::vec3 m_pSpecifiedColor;
-
-    std::array<std::unique_ptr<Mesh>, 2> m_pMeshes;
-
-    GLuint m_pProgramId;
-    GLint m_pAspectRatioUniformLocation, m_pCenterOffsetUniformLocation, m_pColorUniformLocation;
-    GLuint m_pVao;
-    std::array<GLuint, 2> m_pVboIbo;
-
-    int m_pNewSelectedMeshIdx;
-    glm::vec3 m_pAnimColorCurrent;
-    glm::vec3 m_pAnimColorTo;
-    float m_pAnimInterpolant;
+    uint32_t m_pProgramId;
+    int32_t m_pAspectRatioUniformLocation, m_pCenterOffsetUniformLocation;
+    int32_t m_pUseOverrideColorLocation, m_pOverrideColorLocation, m_pScaleUniformLocation;
+    uint32_t m_pVao, m_pVbo, m_pIbo;
 };

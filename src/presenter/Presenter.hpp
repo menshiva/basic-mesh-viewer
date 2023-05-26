@@ -67,7 +67,7 @@ private:
     #if !NDEBUG
         glfwWindowHint(GLFW_OPENGL_DEBUG_CONTEXT, GL_TRUE);
     #endif
-        if constexpr (Config::WIN_DEFAULT_MAXIMIZED)
+        if constexpr (Config::WIN_MAXIMIZED_DEFAULT)
             glfwWindowHint(GLFW_MAXIMIZED, GLFW_TRUE);
     #else
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
@@ -76,7 +76,7 @@ private:
     #endif
 
         const auto window = glfwCreateWindow(
-            Config::WIN_DEFAULT_WIDTH, Config::WIN_DEFAULT_HEIGHT,
+            Config::WIN_WIDTH_DEFAULT, Config::WIN_HEIGHT_DEFAULT,
             Config::WIN_TITLE,
             nullptr, nullptr
         );

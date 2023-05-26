@@ -1,16 +1,11 @@
 #include "Ui.hpp"
-#include <vector>
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 #include "imgui_internal.h"
-#include "../config.hpp"
+#include "../meshrenderer/mesh/MeshSettings.hpp"
 
 // TODO: make adaptive
 // TODO: better touch gestures on smartphones
-
-UI::UI() : m_DeltaTime(0.0f),
-           m_pIsSelectedMeshIdxChanged(false), m_pAreSelectedMeshSettingsChanged(false),
-           m_pIsColorSpecifiedChanged(false), m_pColorChanged(false) {}
 
 bool UI::Init(const GLInfo &glInfo, GLFWwindow *window) {
     m_pInfo = glInfo;
@@ -23,14 +18,10 @@ bool UI::Init(const GLInfo &glInfo, GLFWwindow *window) {
 
     ImGui::StyleColorsDark();
     ImGuiStyle &style = ImGui::GetStyle();
-    // TODO
-    // style.WindowBorderSize = 0.0f;
-    // style.PopupBorderSize = 0.0f;
+    style.WindowBorderSize = 0.0f;
     style.WindowRounding = 4.0f;
     style.FrameRounding = 4.0f;
-    // style.PopupRounding = 4.0f;
     style.ScrollbarRounding = 4.0f;
-    // style.WindowTitleAlign = ImVec2(0.5f, 0.5f);
     style.Colors[ImGuiCol_WindowBg] = ImVec4(0.0f, 0.0f, 0.0f, 0.65);
     style.Colors[ImGuiCol_TitleBgActive] = ImVec4(0.0f, 0.0f, 0.0f, 0.65);
 
@@ -48,19 +39,14 @@ bool UI::Init(const GLInfo &glInfo, GLFWwindow *window) {
 }
 
 void UI::Update(
-    int &selectedMeshIdx, const std::vector<const char*> &meshNames,
+    const std::vector<std::string_view> &meshesNames,
+    UpdateParams &updateParams,
     MeshSettings *meshSettings,
-    bool &isColorSpecified, float *color
+    DrawInfo drawInfo
 ) {
-    auto &io = ImGui::GetIO();
-
     ImGui_ImplOpenGL3_NewFrame();
     ImGui_ImplGlfw_NewFrame();
     ImGui::NewFrame();
-
-    // TODO
-    // hard-coded for now
-    ImGui::SetNextWindowSize(ImVec2(390.0f, 283.0f), ImGuiCond_Once);
 
     const auto &viewport = ImGui::GetMainViewport();
     ImGui::SetNextWindowPos(
@@ -68,16 +54,31 @@ void UI::Update(
         ImGuiCond_Always, ImVec2(1.0f, 0.0f)
     );
 
-    ImGui::Begin("##Main##", nullptr, ImGuiWindowFlags_NoResize | ImGuiWindowFlags_NoMove);
-    TypeSection(selectedMeshIdx, meshNames);
-    if (meshSettings) {
-        SettingsSection(meshSettings);
-        ColorSection(isColorSpecified, color);
+    constexpr static float dummyHeight = 2.0f;
+    float windowWidth = 0.0f;
+    ImGui::Begin("##Main##", nullptr);
+
+    ImGui::SeparatorText("Mesh");
+    windowWidth = ImMax(TypeSection(meshesNames, updateParams.m_SelectedMeshIdx), windowWidth);
+    ImGui::Dummy(ImVec2(0.0f, dummyHeight));
+    windowWidth = ImMax(ColorSection(updateParams.m_ColorType, meshSettings->m_Color, updateParams.m_OverrideColor), windowWidth);
+    ImGui::Dummy(ImVec2(0.0f, dummyHeight));
+    ScaleSection(updateParams.m_Scale);
+    // TODO
+    // ImGui::Dummy(ImVec2(0.0f, dummyHeight));
+    // ImGui::Text("Use LMB to rotate.");
+
+    if (auto poly2DSettings = dynamic_cast<Polygon2DSettings*>(meshSettings)) {
+        ImGui::SeparatorText("Preferences");
+        VerticesNumSection(poly2DSettings);
     }
-    InfoAndMetricsSection();
+
+    ImGui::SeparatorText("Info and Metrics");
+    InfoAndMetricsSection(drawInfo);
+
+    ImGui::SetWindowSize(ImVec2(windowWidth, 0.0f));
     ImGui::End();
 
-    m_DeltaTime = io.DeltaTime;
     ImGui::EndFrame();
 }
 
@@ -95,54 +96,158 @@ void UI::Destroy() {
     }
 }
 
-void UI::TypeSection(int &selectedMeshIdx, const std::vector<const char*> &meshNames) {
-    ImGui::SeparatorText("Type");
-    m_pIsSelectedMeshIdxChanged = ImGui::Combo("##Type##", &selectedMeshIdx, meshNames.data(), (int) meshNames.size());
+float UI::TypeSection(const std::vector<std::string_view> &meshesNames, int &selectedMeshIdx) {
+    ImGui::PushItemWidth(-FLT_MIN);
+
+    const char *previewStr, *previewStrEnd;
+    ImFormatStringToTempBuffer(&previewStr, &previewStrEnd, "Type: %s", meshesNames[selectedMeshIdx].data());
+
+    if (ImGui::BeginCombo("##Type##", previewStr)) {
+        for (int i = 0; i < meshesNames.size(); ++i) {
+            const bool isSelected = (i == selectedMeshIdx);
+            if (ImGui::Selectable(meshesNames[i].data(), isSelected))
+                selectedMeshIdx = i;
+            if (isSelected)
+                ImGui::SetItemDefaultFocus();
+        }
+        ImGui::EndCombo();
+    }
+
+    ImGui::PopItemWidth();
+
+    const static float typeSize = ImGui::CalcTextSize("Type: ").x;
+    float maxBodySize = 0.0f;
+    for (const auto s : meshesNames) {
+        const float size = ImGui::CalcTextSize(s.data(), s.data() + s.size()).x;
+        if (size > maxBodySize)
+            maxBodySize = size;
+    }
+    constexpr static float dropButtonSize = 40.0f;
+
+    return typeSize + maxBodySize + dropButtonSize + 2.0f;
 }
 
-void UI::SettingsSection(MeshSettings *meshSettings) {
-    ImGui::SeparatorText("Parameters");
-    if (auto poly2DSettings = dynamic_cast<Polygon2DSettings*>(meshSettings)) {
-        m_pAreSelectedMeshSettingsChanged = ImGui::SliderInt(
-            "##Vertices##", &poly2DSettings->m_VerticesNum,
-            Config::MESH_SETTINGS_POLY2D_VERTICES_MIN, Config::MESH_SETTINGS_POLY2D_VERTICES_MAX,
-            "Vertices: %d",
-            ImGuiSliderFlags_NoInput
+float UI::ColorSection(UpdateParams::ColorType &colorType, glm::vec3 &specifiedColor, glm::vec3 &overrideColor) {
+    const static auto ToStr = [] (UpdateParams::ColorType v) {
+        switch (v) {
+            case UpdateParams::ColorType::INTERPOLATE:      return "Interpolate";
+            case UpdateParams::ColorType::HUE_DISTRIBUTE:   return "Hue uniform distribution";
+            case UpdateParams::ColorType::SPECIFIED:        return "Specified";
+            default:                                        return "[Unknown ColorType]";
+        }
+    };
+    constexpr static float colorEdit4WidthPadding = 43.0f;
+    static auto prevColorType = UpdateParams::ColorType::NUM;
+
+    if (prevColorType != UpdateParams::ColorType::SPECIFIED)
+        ImGui::PushItemWidth(-FLT_MIN);
+    else
+        ImGui::PushItemWidth(ImGui::GetWindowWidth() - colorEdit4WidthPadding);
+
+    const char *previewStr, *previewStrEnd;
+    ImFormatStringToTempBuffer(&previewStr, &previewStrEnd, "Color: %s", ToStr(colorType));
+
+    if (ImGui::BeginCombo("##Color Type##", previewStr)) {
+        std::underlying_type_t<UpdateParams::ColorType> i;
+        auto num = (std::underlying_type_t<UpdateParams::ColorType>) UpdateParams::ColorType::NUM;
+
+        for (i = 0; i < num; ++i) {
+            const bool isSelected = (i == (std::underlying_type_t<UpdateParams::ColorType>) colorType);
+            if (ImGui::Selectable(ToStr((UpdateParams::ColorType) i), isSelected))
+                colorType = (UpdateParams::ColorType) i;
+            if (isSelected)
+                ImGui::SetItemDefaultFocus();
+        }
+
+        ImGui::EndCombo();
+    }
+
+    if (colorType == UpdateParams::ColorType::SPECIFIED) {
+        ImGui::SameLine();
+        ImGui::ColorEdit4(
+            "##Mesh Color##", (float*) &specifiedColor,
+            ImGuiColorEditFlags_NoInputs | ImGuiColorEditFlags_NoLabel | ImGuiColorEditFlags_InputRGB
+            | ImGuiColorEditFlags_NoAlpha | ImGuiColorEditFlags_DisplayRGB
         );
+    }
+
+    ImGui::PopItemWidth();
+
+    if (colorType == UpdateParams::ColorType::SPECIFIED) {
+        overrideColor = specifiedColor;
+    }
+    else if (colorType == UpdateParams::ColorType::INTERPOLATE) {
+        if (prevColorType == colorType) {
+            glm::vec3 hsv;
+            ImGui::ColorConvertRGBtoHSV(
+                overrideColor.r, overrideColor.g, overrideColor.b,
+                hsv.x, hsv.y, hsv.z
+            );
+            hsv.x += ImGui::GetIO().DeltaTime * 0.5f;
+            if (hsv.x > 360.0f)
+                hsv.x -= 360.0f;
+            ImGui::ColorConvertHSVtoRGB(
+                hsv.x, hsv.y, hsv.z,
+                overrideColor.r, overrideColor.g, overrideColor.b
+            );
+        }
+        else
+            overrideColor = glm::vec3(1.0f, 0.0f, 0.0f);
+    }
+
+    prevColorType = colorType;
+
+    const static float colorSize = ImGui::CalcTextSize("Color: ").x;
+    float maxBodySize = 0.0f;
+    std::underlying_type_t<UpdateParams::ColorType> i;
+    auto num = (std::underlying_type_t<UpdateParams::ColorType>) UpdateParams::ColorType::NUM;
+    for (i = 0; i < num; ++i) {
+        const float size = ImGui::CalcTextSize(ToStr((UpdateParams::ColorType) i)).x;
+        if (size > maxBodySize)
+            maxBodySize = size;
+    }
+    constexpr static float dropButtonSize = 40.0f;
+
+    return colorSize + maxBodySize + dropButtonSize + 2.0f;
+}
+
+void UI::ScaleSection(float &scale) {
+    ImGui::PushItemWidth(-FLT_MIN);
+    ImGui::SliderFloat(
+        "##Scale##", &scale,
+        Config::MESH_SETTINGS_SCALE_MIN, Config::MESH_SETTINGS_SCALE_MAX,
+        "Scale: %.2f (or use mouse wheel)",
+        ImGuiSliderFlags_NoInput
+    );
+    ImGui::PopItemWidth();
+
+    const auto &io = ImGui::GetIO();
+    if (!io.WantCaptureMouse) {
+        scale += io.MouseWheel * 0.05f;
+        scale = ImClamp(scale, Config::MESH_SETTINGS_SCALE_MIN, Config::MESH_SETTINGS_SCALE_MAX);
     }
 }
 
-void UI::ColorSection(bool &isSpecified, float *color) {
-    ImGui::SeparatorText("Color");
-    m_pIsColorSpecifiedChanged = ImGui::Checkbox("##Specified##", &isSpecified);
-    ImGui::SameLine();
-    ImGui::BeginDisabled(!isSpecified);
-    m_pColorChanged = ImGui::ColorEdit3(
-        "##Mesh Color##", color,
-        ImGuiColorEditFlags_InputRGB | ImGuiColorEditFlags_NoAlpha | ImGuiColorEditFlags_DisplayRGB
+void UI::VerticesNumSection(Polygon2DSettings *poly2DSettings) {
+    ImGui::PushItemWidth(-FLT_MIN);
+    ImGui::SliderInt(
+        "##Vertices##", &poly2DSettings->m_VerticesNum,
+        Config::MESH_SETTINGS_POLY2D_VERTICES_MIN, Config::MESH_SETTINGS_POLY2D_VERTICES_MAX,
+        "Vertices: %d",
+        ImGuiSliderFlags_NoInput
     );
-    ImGui::EndDisabled();
+    ImGui::PopItemWidth();
 }
 
-void UI::InfoAndMetricsSection() const {
-    ImGui::SeparatorText("Info and Metrics");
-
-    ImGui::Text("OpenGL implementation vendor: %s", m_pInfo.m_Vendor.data());
-    ImGui::Text("Renderer: %s", m_pInfo.m_Renderer.data());
-    ImGui::Text("OpenGL version supported: %s", m_pInfo.m_Version.data());
-    ImGui::Text("OpenGL shading language: %s", m_pInfo.m_ShadingLanguageVersion.data());
+void UI::InfoAndMetricsSection(DrawInfo drawInfo) const {
+    ImGui::Text("Vertices: %d", drawInfo.m_VerticesNum);
+    ImGui::Text("Triangles: %d", drawInfo.m_TrianglesNum);
+    ImGui::Text("Performance: %.1f FPS", ImGui::GetIO().Framerate);
 
     ImGui::Separator();
 
-    // TODO
-    // const float metricsOffset = (availableWidth - ImGui::CalcTextSize()) * 0.5f;
-    // if (metricsOffset > 0.0f)
-    //     ImGui::SetCursorPosX(ImGui::GetCursorPosX() + metricsOffset);
-    ImGui::Text("Performance: %.1f FPS", ImGui::GetIO().Framerate);
-}
-
-bool UI::GetPropertyAndReset(bool &property) {
-    const bool ret = property;
-    property = false;
-    return ret;
+    ImGui::TextWrapped("OpenGL implementation vendor: %s", m_pInfo.m_Vendor.data());
+    ImGui::TextWrapped("Renderer: %s", m_pInfo.m_Renderer.data());
+    ImGui::TextWrapped("OpenGL version supported: %s", m_pInfo.m_Version.data());
+    ImGui::TextWrapped("OpenGL shading language: %s", m_pInfo.m_ShadingLanguageVersion.data());
 }

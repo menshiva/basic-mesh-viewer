@@ -1,43 +1,34 @@
 #pragma once
 
-#include <string>
 #include <vector>
-#include <glm/common.hpp>
 #include <glm/vec2.hpp>
-#include "MeshSettings.hpp"
+#include <glm/vec3.hpp>
 
 class Mesh {
 public:
-    explicit Mesh(std::string_view name = "None") : m_pName(name) {}
+    struct Vertex { glm::vec2 m_Position; glm::vec3 m_Color; };
+    struct Triangle { uint8_t m_A, m_B, m_C; };
+
+    Mesh() : m_pCenter(0.0f) {}
     virtual ~Mesh() = default;
 
-    std::string_view GetName() const { return m_pName; }
-    const std::vector<glm::vec2> &GetVertexPositions() const { return m_pVertexPositions; }
-    const std::vector<uint8_t> &GetIndices() const { return m_pIndices; }
+    static const char *GetName() { return "None"; }
 
-    virtual void Init() {}
-    virtual bool Update() { return false; }
+    virtual void Init() = 0;
+    virtual bool Update(struct MeshSettings *newSettings) = 0;
 
     void Destroy() {
-        m_pVertexPositions.clear();
-        m_pIndices.clear();
+        m_pVertices.clear();
+        m_pTriangles.clear();
+        m_pCenter = glm::vec2(0.0f);
     }
 
-    glm::vec2 GetCenterOffset() const {
-        glm::vec2 min(0.0f), max(0.0f);
-        if (!m_pVertexPositions.empty()) {
-            min = max = m_pVertexPositions[0];
-            for (uint32_t i = 1; i < m_pVertexPositions.size(); ++i) {
-                min = glm::min(min, m_pVertexPositions[i]);
-                max = glm::max(max, m_pVertexPositions[i]);
-            }
-        }
-        return glm::vec2(0.0f) - (min + max) / 2.0f;
-    }
-
-    virtual MeshSettings *GetSettingsPtr() { return nullptr; }
+    virtual MeshSettings *GetSettingsCopy() = 0;
+    const auto &GetVertices() const { return m_pVertices; }
+    const auto &GetTriangles() const { return m_pTriangles; }
+    glm::vec2 GetScreenCenterOffset() const { return glm::vec2(0.0f) - m_pCenter; }
 protected:
-    std::string m_pName;
-    std::vector<glm::vec2> m_pVertexPositions;
-    std::vector<uint8_t> m_pIndices;
+    std::vector<Vertex> m_pVertices;
+    std::vector<Triangle> m_pTriangles;
+    glm::vec2 m_pCenter;
 };

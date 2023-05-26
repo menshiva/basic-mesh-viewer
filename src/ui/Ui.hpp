@@ -1,36 +1,25 @@
 #pragma once
 
-#include <functional>
-#include "../meshrenderer/GLInfo.hpp"
-#include "../meshrenderer/mesh/MeshSettings.hpp"
+#include <vector>
+#include "../meshrenderer/MeshRendererUiData.hpp"
 
 class UI {
 public:
-    UI();
-
     bool Init(const GLInfo &glInfo, struct GLFWwindow *window);
     void Update(
-        int &selectedMeshIdx, const std::vector<const char*> &meshNames,
-        MeshSettings *meshSettings,
-        bool &isColorSpecified, float *color
+        const std::vector<std::string_view> &meshesNames,
+        UpdateParams &updateParams,
+        struct MeshSettings *meshSettings,
+        DrawInfo drawInfo
     );
     static void Draw();
     static void Destroy();
-
-    bool IsSelectedMeshIdxChanged() { return GetPropertyAndReset(m_pIsSelectedMeshIdxChanged); }
-    bool AreSelectedMeshSettingsChanged() { return GetPropertyAndReset(m_pAreSelectedMeshSettingsChanged); }
-    bool IsColorSpecifiedChanged() { return GetPropertyAndReset(m_pIsColorSpecifiedChanged); }
-    bool IsColorChanged() { return GetPropertyAndReset(m_pColorChanged); }
-
-    float m_DeltaTime;
 private:
-    void TypeSection(int &selectedMeshIdx, const std::vector<const char*> &meshNames);
-    void SettingsSection(MeshSettings *meshSettings);
-    void ColorSection(bool &isSpecified, float *color);
-    void InfoAndMetricsSection() const;
-
-    static bool GetPropertyAndReset(bool &property);
+    static float TypeSection(const std::vector<std::string_view> &meshesNames, int &selectedMeshIdx);
+    static float ColorSection(UpdateParams::ColorType &colorType, glm::vec3 &specifiedColor, glm::vec3 &overrideColor);
+    static void ScaleSection(float &scale);
+    static void VerticesNumSection(struct Polygon2DSettings *poly2DSettings);
+    void InfoAndMetricsSection(DrawInfo drawInfo) const;
 
     GLInfo m_pInfo;
-    bool m_pIsSelectedMeshIdxChanged, m_pAreSelectedMeshSettingsChanged, m_pIsColorSpecifiedChanged, m_pColorChanged;
 };

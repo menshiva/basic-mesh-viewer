@@ -13,20 +13,10 @@ static void OnResize(MeshRenderer *renderer, UI*, const int w, const int h) {
 }
 
 static void OnUpdate(MeshRenderer *renderer, UI *ui) {
-    ui->Update(
-        renderer->GetSelectedMeshIdxRef(),
-        renderer->GetMeshesNames(),
-        renderer->GetCurrentMeshSettings(),
-        renderer->GetIsColorSpecifiedRef(),
-        renderer->GetSpecifiedColorRef()
-    );
-    renderer->Update(
-        ui->m_DeltaTime,
-        ui->IsSelectedMeshIdxChanged(),
-        ui->AreSelectedMeshSettingsChanged(),
-        ui->IsColorSpecifiedChanged(),
-        ui->IsColorChanged()
-    );
+    UpdateParams updateParams(renderer->GetParamsCopy());
+    std::unique_ptr<MeshSettings> meshSettings(renderer->GetMeshSettingsCopy());
+    ui->Update(renderer->GetMeshesNames(), updateParams, meshSettings.get(), renderer->GetDrawInfo());
+    renderer->Update(updateParams, meshSettings.get());
 }
 
 static void OnDraw(MeshRenderer *renderer, UI*) {
@@ -42,7 +32,7 @@ static void OnDestroy(MeshRenderer *renderer, UI*) {
 int main() {
     MeshRenderer renderer;
     UI ui;
-    return Presenter<MeshRenderer*, UI*>(&renderer, &ui)
+    return Presenter(&renderer, &ui)
         .WithOnInitCallback(OnInit)
         .WithOnResizeCallback(OnResize)
         .WithOnUpdateCallback(OnUpdate)

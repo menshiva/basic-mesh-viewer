@@ -9,21 +9,26 @@
 #endif
 
 namespace Config {
-    constexpr static inline int         WIN_MIN_WIDTH = 1280;
-    constexpr static inline int         WIN_MIN_HEIGHT = 720;
-    constexpr static inline int         WIN_DEFAULT_WIDTH = 1280;
-    constexpr static inline int         WIN_DEFAULT_HEIGHT = 720;
-    constexpr static inline const char *WIN_TITLE = "Basic Mesh Viewer";
-    constexpr static inline bool        WIN_DEFAULT_MAXIMIZED = true;
-    constexpr static inline glm::vec3   BACKGROUND_COLOR = glm::vec3(0.07f);
+    constexpr inline int         WIN_MIN_WIDTH = 1280;
+    constexpr inline int         WIN_MIN_HEIGHT = 720;
+    constexpr inline int         WIN_WIDTH_DEFAULT = 1280;
+    constexpr inline int         WIN_HEIGHT_DEFAULT = 720;
+    constexpr inline const char *WIN_TITLE = "Basic Mesh Viewer";
+    constexpr inline bool        WIN_MAXIMIZED_DEFAULT = false;
+    constexpr inline glm::vec3   BACKGROUND_COLOR = glm::vec3(0.07f);
 
-    constexpr static inline int         SELECTED_MESH_IDX = 1;
-    constexpr static inline bool        IS_COLOR_SPECIFIED = false;
-    constexpr static inline glm::vec3   MESH_DEFAULT_COLOR = glm::vec3(1.0f);
+    constexpr inline int         SELECTED_MESH_IDX_DEFAULT = 0;
 
-    constexpr static int                MESH_SETTINGS_POLY2D_VERTICES_DEFAULT = 3;
-    constexpr static int                MESH_SETTINGS_POLY2D_VERTICES_MIN = 3;
-    constexpr static int                MESH_SETTINGS_POLY2D_VERTICES_MAX = 30;
+    constexpr inline uint8_t     MESH_SETTINGS_COLOR_TYPE_DEFAULT = 0;
+    constexpr inline glm::vec3   MESH_SETTINGS_COLOR_DEFAULT = glm::vec3(1.0f);
 
-    constexpr static inline const char *SHADER_PATH = "res/Basic";
+    constexpr inline float       MESH_SETTINGS_SCALE_DEFAULT = 0.75f;
+    constexpr inline float       MESH_SETTINGS_SCALE_MIN = 0.01f;
+    constexpr inline float       MESH_SETTINGS_SCALE_MAX = 2.0f;
+
+    constexpr int                MESH_SETTINGS_POLY2D_VERTICES_DEFAULT = 3;
+    constexpr int                MESH_SETTINGS_POLY2D_VERTICES_MIN = 3;
+    constexpr int                MESH_SETTINGS_POLY2D_VERTICES_MAX = 50;
+
+    constexpr inline const char *SHADER_PATH = "res/shaders/Basic";
 }

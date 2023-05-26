@@ -6,6 +6,7 @@ IMGUI_DIR = include/imgui
 GLM_DIR = include/glm
 SRC_DIR = src
 RES_DIR = res
+SHADERS_DIR = res/shaders
 OBJ_DIR = web_build
 
 EXE = $(WEB_DIR)/index.html
@@ -31,7 +32,7 @@ LDFLAGS += -s USE_GLFW=3 -s WASM=1 -s ALLOW_MEMORY_GROWTH=1 -s NO_EXIT_RUNTIME=0
 #EMS += -s BINARYEN_TRAP_MODE=clamp
 #EMS += -s SAFE_HEAP=1    ## Adds overhead
 
-LDFLAGS += --no-heap-copy --embed-file $(RES_DIR)
+LDFLAGS += --no-heap-copy --embed-file $(SHADERS_DIR)
 
 ##---------------------------------------------------------------------
 ## FINAL BUILD FLAGS
